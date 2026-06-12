@@ -1,2 +1,1 @@
-# calculator
-Offline web browser calculator.
+Highly advanced chrome offline calculator
