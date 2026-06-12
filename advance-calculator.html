@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Scientific Calculator Pro</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #252540;
+            --text: #e0e0f0;
+            --text2: #8888aa;
+            --accent: #6c5ce7;
+            --accent2: #a29bfe;
+            --green: #00cec9;
+            --red: #ff6b6b;
+            --orange: #fdcb6e;
+            --blue: #74b9ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 0 60px rgba(108,92,231,0.15), 0 0 0 1px var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 98vh;
+        }
+
+        .mode-tabs {
+            display: flex;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .mode-tabs::-webkit-scrollbar { display: none; }
+
+        .mode-tab {
+            padding: 12px 18px;
+            background: none;
+            border: none;
+            color: var(--text2);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            letter-spacing: 0.5px;
+        }
+        .mode-tab:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+        .mode-tab.active {
+            color: var(--accent2);
+            border-bottom-color: var(--accent);
+            background: rgba(108,92,231,0.08);
+        }
+
+        .panel {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+        .panel.active { display: flex; }
+
+        .display-area {
+            background: #000;
+            border-bottom: 1px solid var(--border);
+            padding: 16px 20px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .input-line {
+            color: var(--text2);
+            font-size: 14px;
+            min-height: 20px;
+            word-break: break-all;
+            font-family: inherit;
+        }
+        .output-line {
+            color: #fff;
+            font-size: 28px;
+            font-weight: 300;
+            word-break: break-all;
+            font-family: inherit;
+            margin-top: 4px;
+        }
+        .output-sub {
+            color: var(--text2);
+            font-size: 13px;
+            margin-top: 2px;
+            font-family: inherit;
+        }
+
+        .keypad-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .key-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .key-grid.basic { grid-template-columns: repeat(5, 1fr); }
+        .key-grid.scientific { grid-template-columns: repeat(6, 1fr); }
+        .key-grid.matrix { grid-template-columns: repeat(4, 1fr); }
+        .key-grid.stats { grid-template-columns: repeat(4, 1fr); }
+
+        button {
+            padding: 12px 6px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            transition: all 0.12s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
+        }
+        button:hover {
+            background: #222236;
+            border-color: #3a3a60;
+        }
+        button:active {
+            transform: scale(0.94);
+            background: #0e0e1a;
+        }
+
+        button.num { color: #fff; font-weight: 600; font-size: 15px; }
+        button.op { background: #1f1a3a; color: var(--accent2); font-weight: 700; font-size: 16px; border-color: #2d2550; }
+        button.func { background: #141830; color: var(--blue); font-size: 11px; }
+        button.equals { background: var(--accent); color: #fff; font-weight: 700; font-size: 18px; border-color: var(--accent2); }
+        button.equals:hover { box-shadow: 0 0 24px rgba(108,92,231,0.5); }
+        button.clear { background: #1f1418; color: var(--red); border-color: #301820; }
+        button.mem { background: #141f18; color: var(--green); font-size: 11px; border-color: #1a3020; }
+        button.special { background: #1a1714; color: var(--orange); font-size: 11px; border-color: #302820; }
+
+        .row-span-2 { grid-row: span 2; }
+        .col-span-2 { grid-column: span 2; }
+
+        .section-label {
+            color: var(--text2);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 10px 0 6px 4px;
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 600px) {
+            .key-grid.basic { grid-template-columns: repeat(4, 1fr); }
+            .key-grid.scientific { grid-template-columns: repeat(4, 1fr); }
+            .output-line { font-size: 22px; }
+            button { padding: 10px 4px; font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="switchMode('basic')">Basic</button>
+            <button class="mode-tab" onclick="switchMode('scientific')">Scientific</button>
+            <button class="mode-tab" onclick="switchMode('matrix')">Matrix</button>
+            <button class="mode-tab" onclick="switchMode('stats')">Statistics</button>
+            <button class="mode-tab" onclick="switchMode('calc')">Calculus</button>
+            <button class="mode-tab" onclick="switchMode('solver')">Solver</button>
+            <button class="mode-tab" onclick="switchMode('convert')">Convert</button>
+        </div>
+
+        <div class="display-area">
+            <div class="input-line" id="inputLine"></div>
+            <div class="output-line" id="outputLine">0</div>
+            <div class="output-sub" id="outputSub"></div>
+        </div>
+
+        <!-- ==================== BASIC ==================== -->
+        <div class="panel active" id="panel-basic">
+            <div class="keypad-scroll">
+                <div class="key-grid basic">
+                    <button class="clear" onclick="clearAll()">AC</button>
+                    <button class="clear" onclick="backspace()">⌫</button>
+                    <button class="func" onclick="append('(')">(</button>
+                    <button class="func" onclick="append(')')">)</button>
+                    <button class="op" onclick="append('/')">÷</button>
+
+                    <button class="num" onclick="append('7')">7</button>
+                    <button class="num" onclick="append('8')">8</button>
+                    <button class="num" onclick="append('9')">9</button>
+                    <button class="func" onclick="append('%')">%</button>
+                    <button class="op" onclick="append('*')">×</button>
+
+                    <button class="num" onclick="append('4')">4</button>
+                    <button class="num" onclick="append('5')">5</button>
+                    <button class="num" onclick="append('6')">6</button>
+                    <button class="func" onclick="append('^')">xʸ</button>
+                    <button class="op" onclick="append('-')">−</button>
+
+                    <button class="num" onclick="append('1')">1</button>
+                    <button class="num" onclick="append('2')">2</button>
+                    <button class="num" onclick="append('3')">3</button>
+                    <button class="func" onclick="append('sqrt(')">√</button>
+                    <button class="op" onclick="append('+')">+</button>
+
+                    <button class="func" onclick="toggleSign()">±</button>
+                    <button class="num" onclick="append('0')">0</button>
+                    <button class="num" onclick="append('.')">.</button>
+                    <button class="mem" onclick="append('ANS')">Ans</button>
+                    <button class="equals" onclick="calculate()">=</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== SCIENTIFIC ==================== -->
+        <div class="panel" id="panel-scientific">
+            <div class="keypad-scroll">
+                <div class="key-grid scientific">
+                    <span class="section-label">Trigonometry</span>
+                    <button class="func" onclick="append('sin(')">sin</button>
+                    <button class="func" onclick="append('cos(')">cos</button>
+                    <button class="func" onclick="append('tan(')">tan</button>
+                    <button class="func" onclick="append('asin(')">sin⁻¹</button>
+                    <button class="func" onclick="append('acos(')">cos⁻¹</button>
+                    <button class="func" onclick="append('atan(')">tan⁻¹</button>
+
+                    <button class="func" onclick="append('sinh(')">sinh</button>
+                    <button class="func" onclick="append('cosh(')">cosh</button>
+                    <button class="func" onclick="append('tanh(')">tanh</button>
+                    <button class="func" onclick="append('csc(')">csc</button>
+                    <button class="func" onclick="append('sec(')">sec</button>
+                    <button class="func" onclick="append('cot(')">cot</button>
+
+                    <span class="section-label">Logarithms & Powers</span>
+                    <button class="func" onclick="append('log(')">log₁₀</button>
+                    <button class="func" onclick="append('ln(')">ln</button>
+                    <button class="func" onclick="append('log2(')">log₂</button>
+                    <button class="func" onclick="append('exp(')">eˣ</button>
+                    <button class="func" onclick="append('10^(')">10ˣ</button>
+                    <button class="func" onclick="append('2^(')">2ˣ</button>
+
+                    <span class="section-label">Advanced</span>
+                    <button class="func" onclick="append('sqrt(')">√</button>
+                    <button class="func" onclick="append('cbrt(')">∛</button>
+                    <button class="func" onclick="append('nroot(')">ⁿ√</button>
+                    <button class="func" onclick="append('abs(')">|x|</button>
+                    <button class="func" onclick="append('floor(')">⌊x⌋</button>
+                    <button class="func" onclick="append('ceil(')">⌈x⌉</button>
+
+                    <button class="func" onclick="append('!')">n!</button>
+                    <button class="func" onclick="append('gamma(')">Γ</button>
+                    <button class="func" onclick="append('mod(')">mod</button>
+                    <button class="func" onclick="append('gcd(')">gcd</button>
+                    <button class="func" onclick="append('lcm(')">lcm</button>
+                    <button class="func" onclick="append('rand()')">rand</button>
+
+                    <span class="section-label">Constants & Complex</span>
+                    <button class="special" onclick="append('PI')">π</button>
+                    <button class="special" onclick="append('E')">e</button>
+                    <button class="special" onclick="append('TAU')">τ</button>
+                    <button class="special" onclick="append('PHI')">φ</button>
+                    <button class="special" onclick="append('i')">i</button>
+                    <button class="special" onclick="append('Infinity')">∞</button>
+
+                    <button class="clear col-span-2" onclick="clearAll()">AC</button>
+                    <button class="clear col-span-2" onclick="backspace()">⌫</button>
+                    <button class="equals col-span-2" onclick="calculate()">=</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== MATRIX ==================== -->
+        <div class="panel" id="panel-matrix">
+            <div class="keypad-scroll">
+                <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:200px;">
+                        <label style="color:var(--text2);font-size:11px;">Matrix A (rows,cols)</label>
+                        <div style="display:flex;gap:6px;margin-top:4px;">
+                            <input id="matARows" type="number" value="2" min="1" max="6" style="width:50px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                            <span style="color:var(--text2);">×</span>
+                            <input id="matACols" type="number" value="2" min="1" max="6" style="width:50px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                            <button class="mem" onclick="createMatrix('A')" style="padding:6px 10px;">Set</button>
+                        </div>
+                        <textarea id="matAData" rows="3" placeholder="1,2;3,4" style="width:100%;margin-top:6px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:8px;border-radius:4px;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                    <div style="flex:1;min-width:200px;">
+                        <label style="color:var(--text2);font-size:11px;">Matrix B (rows,cols)</label>
+                        <div style="display:flex;gap:6px;margin-top:4px;">
+                            <input id="matBRows" type="number" value="2" min="1" max="6" style="width:50px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                            <span style="color:var(--text2);">×</span>
+                            <input id="matBCols" type="number" value="2" min="1" max="6" style="width:50px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                            <button class="mem" onclick="createMatrix('B')" style="padding:6px 10px;">Set</button>
+                        </div>
+                        <textarea id="matBData" rows="3" placeholder="5,6;7,8" style="width:100%;margin-top:6px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:8px;border-radius:4px;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div class="key-grid matrix">
+                    <button class="op" onclick="matrixOp('A+B')">A + B</button>
+                    <button class="op" onclick="matrixOp('A-B')">A − B</button>
+                    <button class="op" onclick="matrixOp('A*B')">A × B</button>
+                    <button class="op" onclick="matrixOp('A.*B')">A .* B</button>
+                    <button class="func" onclick="matrixOp('det(A)')">det(A)</button>
+                    <button class="func" onclick="matrixOp('inv(A)')">A⁻¹</button>
+                    <button class="func" onclick="matrixOp('T(A)')">Aᵀ</button>
+                    <button class="func" onclick="matrixOp('rank(A)')">rank(A)</button>
+                    <button class="func" onclick="matrixOp('eig(A)')">eigen(A)</button>
+                    <button class="func" onclick="matrixOp('rref(A)')">rref(A)</button>
+                    <button class="func" onclick="matrixOp('LU(A)')">LU(A)</button>
+                    <button class="func" onclick="matrixOp('chol(A)')">Cholesky</button>
+                    <button class="mem" onclick="matrixOp('A^n')">Aⁿ</button>
+                    <button class="mem" onclick="matrixOp('norm(A)')">‖A‖</button>
+                    <button class="mem" onclick="matrixOp('cond(A)')">cond(A)</button>
+                    <button class="clear" onclick="matrixOp('solve')">Ax=b</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== STATISTICS ==================== -->
+        <div class="panel" id="panel-stats">
+            <div class="keypad-scroll">
+                <div style="margin-bottom:12px;">
+                    <label style="color:var(--text2);font-size:11px;">Data (comma or space separated)</label>
+                    <textarea id="statsData" rows="3" placeholder="1,2,3,4,5,6,7,8,9,10" style="width:100%;margin-top:4px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:8px;border-radius:4px;font-family:inherit;resize:vertical;"></textarea>
+                </div>
+                <div class="key-grid stats">
+                    <button class="func" onclick="statsOp('mean')">Mean</button>
+                    <button class="func" onclick="statsOp('median')">Median</button>
+                    <button class="func" onclick="statsOp('mode')">Mode</button>
+                    <button class="func" onclick="statsOp('geometricMean')">Geo Mean</button>
+                    <button class="func" onclick="statsOp('harmonicMean')">Harm Mean</button>
+                    <button class="func" onclick="statsOp('variance')">Variance</button>
+                    <button class="func" onclick="statsOp('stddev')">Std Dev</button>
+                    <button class="func" onclick="statsOp('popStddev')">Pop Std Dev</button>
+                    <button class="func" onclick="statsOp('min')">Min</button>
+                    <button class="func" onclick="statsOp('max')">Max</button>
+                    <button class="func" onclick="statsOp('range')">Range</button>
+                    <button class="func" onclick="statsOp('sum')">Sum</button>
+                    <button class="func" onclick="statsOp('q1')">Q1</button>
+                    <button class="func" onclick="statsOp('q3')">Q3</button>
+                    <button class="func" onclick="statsOp('iqr')">IQR</button>
+                    <button class="func" onclick="statsOp('skewness')">Skewness</button>
+                    <button class="func" onclick="statsOp('kurtosis')">Kurtosis</button>
+                    <button class="func" onclick="statsOp('percentile90')">P90</button>
+                    <button class="func" onclick="statsOp('zscore')">Z-Scores</button>
+                    <button class="special" onclick="statsOp('linearRegression')">Lin Reg</button>
+                    <button class="special" onclick="statsOp('correlation')">Correlation</button>
+                    <button class="special" onclick="statsOp('combinations')">nCr</button>
+                    <button class="special" onclick="statsOp('permutations')">nPr</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CALCULUS ==================== -->
+        <div class="panel" id="panel-calc">
+            <div class="keypad-scroll">
+                <div style="margin-bottom:12px;">
+                    <label style="color:var(--text2);font-size:11px;">Function f(x)</label>
+                    <input id="calcFunc" type="text" value="x^2" style="width:100%;margin-top:4px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:8px;border-radius:4px;font-family:inherit;">
+                    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                        <div>
+                            <label style="color:var(--text2);font-size:10px;">From</label>
+                            <input id="calcFrom" type="number" value="0" step="any" style="width:70px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                        </div>
+                        <div>
+                            <label style="color:var(--text2);font-size:10px;">To</label>
+                            <input id="calcTo" type="number" value="1" step="any" style="width:70px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                        </div>
+                        <div>
+                            <label style="color:var(--text2);font-size:10px;">Steps/n</label>
+                            <input id="calcSteps" type="number" value="1000" min="10" style="width:70px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                        </div>
+                        <div>
+                            <label style="color:var(--text2);font-size:10px;">Point x₀</label>
+                            <input id="calcPoint" type="number" value="1" step="any" style="width:70px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                        </div>
+                    </div>
+                </div>
+                <div class="key-grid stats">
+                    <button class="func" onclick="calcOp('derivative')">f'(x₀)</button>
+                    <button class="func" onclick="calcOp('secondDerivative')">f''(x₀)</button>
+                    <button class="func" onclick="calcOp('integral')">∫ f(x) dx</button>
+                    <button class="func" onclick="calcOp('integralSimpson')">∫ (Simpson)</button>
+                    <button class="func" onclick="calcOp('limit')">lim f(x)</button>
+                    <button class="func" onclick="calcOp('taylor')">Taylor (4th)</button>
+                    <button class="func" onclick="calcOp('newtonRoot')">Root (Newton)</button>
+                    <button class="func" onclick="calcOp('riemannLeft')">Riemann Left</button>
+                    <button class="func" onclick="calcOp('riemannRight')">Riemann Right</button>
+                    <button class="func" onclick="calcOp('riemannMid')">Riemann Mid</button>
+                    <button class="func" onclick="calcOp('trapezoidal')">Trapezoidal</button>
+                    <button class="special" onclick="calcOp('arcLength')">Arc Length</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== SOLVER ==================== -->
+        <div class="panel" id="panel-solver">
+            <div class="keypad-scroll">
+                <div style="margin-bottom:12px;">
+                    <label style="color:var(--text2);font-size:11px;">Equation (use x as variable, = for equality)</label>
+                    <input id="solverEq" type="text" value="x^2 - 4 = 0" style="width:100%;margin-top:4px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:8px;border-radius:4px;font-family:inherit;">
+                    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                        <div>
+                            <label style="color:var(--text2);font-size:10px;">Initial Guess</label>
+                            <input id="solverGuess" type="number" value="1" step="any" style="width:80px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                        </div>
+                        <div>
+                            <label style="color:var(--text2);font-size:10px;">Tolerance</label>
+                            <input id="solverTol" type="number" value="1e-10" step="any" style="width:80px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:6px;border-radius:4px;font-family:inherit;">
+                        </div>
+                    </div>
+                </div>
+                <div class="key-grid stats">
+                    <button class="op" onclick="solverOp('newton')">Newton-Raphson</button>
+                    <button class="op" onclick="solverOp('bisection')">Bisection</button>
+                    <button class="op" onclick="solverOp('secant')">Secant</button>
+                    <button class="func" onclick="solverOp('quadratic')">Quadratic</button>
+                    <button class="func" onclick="solverOp('cubic')">Cubic</button>
+                    <button class="func" onclick="solverOp('polynomial')">Polynomial</button>
+                    <button class="special" onclick="solverOp('system2')">2×2 System</button>
+                    <button class="special" onclick="solverOp('system3')">3×3 System</button>
+                    <button class="mem" onclick="solverOp('ode_euler')">ODE Euler</button>
+                    <button class="mem" onclick="solverOp('ode_rk4')">ODE RK4</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CONVERT ==================== -->
+        <div class="panel" id="panel-convert">
+            <div class="keypad-scroll">
+                <div style="margin-bottom:12px;">
+                    <label style="color:var(--text2);font-size:11px;">Value</label>
+                    <input id="convValue" type="number" value="1" step="any" style="width:100%;margin-top:4px;background:var(--surface2);color:#fff;border:1px solid var(--border);padding:8px;border-radius:4px;font-family:inherit;">
+                </div>
+                <div class="key-grid stats">
+                    <button class="func" onclick="convertOp('deg2rad')">° → rad</button>
+                    <button class="func" onclick="convertOp('rad2deg')">rad → °</button>
+                    <button class="func" onclick="convertOp('cart2polar')">Cart → Polar</button>
+                    <button class="func" onclick="convertOp('polar2cart')">Polar → Cart</button>
+                    <button class="mem" onclick="convertOp('dec2hex')">Dec → Hex</button>
+                    <button class="mem" onclick="convertOp('hex2dec')">Hex → Dec</button>
+                    <button class="mem" onclick="convertOp('dec2bin')">Dec → Bin</button>
+                    <button class="mem" onclick="convertOp('bin2dec')">Bin → Dec</button>
+                    <button class="mem" onclick="convertOp('dec2oct')">Dec → Oct</button>
+                    <button class="mem" onclick="convertOp('oct2dec')">Oct → Dec</button>
+                    <button class="special" onclick="convertOp('frac2dec')">Frac → Dec</button>
+                    <button class="special" onclick="convertOp('dec2frac')">Dec → Frac</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== STATE ====================
+        let currentMode = 'basic';
+        let expression = '';
+        let lastAnswer = 0;
+        let justCalculated = false;
+        let memory = 0;
+        let matrixA = null, matrixB = null;
+        let statsDataset = [];
+
+        // ==================== UI ====================
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.mode-tab[onclick="switchMode('${mode}')"]`)?.classList.add('active');
+            document.getElementById(`panel-${mode}`)?.classList.add('active');
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            document.getElementById('inputLine').textContent = expression || '';
+            document.getElementById('outputLine').textContent = expression ? '' : '0';
+            document.getElementById('outputSub').textContent = '';
+        }
+
+        function showResult(value, sub = '') {
+            if (value === undefined || value === null || (typeof value === 'number' && isNaN(value))) {
+                document.getElementById('outputLine').textContent = 'Error';
+                document.getElementById('outputSub').textContent = '';
+                return;
+            }
+            if (typeof value === 'number') {
+                document.getElementById('outputLine').textContent = formatNumber(value);
+            } else if (typeof value === 'string') {
+                document.getElementById('outputLine').textContent = value;
+            } else if (Array.isArray(value)) {
+                document.getElementById('outputLine').textContent = JSON.stringify(value.map(v => typeof v === 'number' ? formatNumber(v) : v));
+            } else {
+                document.getElementById('outputLine').textContent = JSON.stringify(value);
+            }
+            document.getElementById('outputSub').textContent = sub;
+        }
+
+        function formatNumber(num) {
+            if (!isFinite(num)) return num > 0 ? '∞' : '-∞';
+            if (Number.isInteger(num) && Math.abs(num) < 1e15) return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+            if (Math.abs(num) < 1e-12 && num !== 0) return num.toExponential(8);
+            if (Math.abs(num) >= 1e15) return num.toExponential(10);
+            let formatted = parseFloat(num.toPrecision(12));
+            return formatted.toLocaleString('en-US', { maximumFractionDigits: 10 });
+        }
+
+        function append(val) {
+            if (justCalculated) {
+                if ('0123456789.'.includes(val) || ['PI','E','TAU','PHI','i','ANS','Infinity'].includes(val)) {
+                    expression = '';
+                } else if ('+-*/^'.includes(val)) {
+                    expression = String(lastAnswer);
+                }
+                justCalculated = false;
+            }
+            expression += val;
+            updateDisplay();
+            liveEvaluate();
+        }
+
+        function clearAll() {
+            expression = '';
+            justCalculated = false;
+            updateDisplay();
+            document.getElementById('outputLine').textContent = '0';
+            document.getElementById('outputSub').textContent = '';
+        }
+
+        function backspace() {
+            if (justCalculated) { clearAll(); return; }
+            const funcs = ['sin(','cos(','tan(','asin(','acos(','atan(','sinh(','cosh(','tanh(','csc(','sec(','cot(',
+                          'log(','ln(','log2(','exp(','10^(','2^(','sqrt(','cbrt(','nroot(','abs(','floor(','ceil(',
+                          'gamma(','mod(','gcd(','lcm(','rand()','PI','E','TAU','PHI','ANS','Infinity'];
+            for (let f of funcs) {
+                if (expression.endsWith(f)) {
+                    expression = expression.slice(0, -f.length);
+                    updateDisplay();
+                    liveEvaluate();
+                    return;
+                }
+            }
+            expression = expression.slice(0, -1);
+            updateDisplay();
+            liveEvaluate();
+        }
+
+        function toggleSign() {
+            if (justCalculated) {
+                expression = String(-lastAnswer);
+                justCalculated = false;
+                updateDisplay();
+                liveEvaluate();
+                return;
+            }
+            let match = expression.match(/(-?[\d.]+)$/);
+            if (match) {
+                expression = expression.slice(0, -match[1].length) + String(-parseFloat(match[1]));
+            }
+            updateDisplay();
+            liveEvaluate();
+        }
+
+        // ==================== MATH ENGINE ====================
+        function factorial(n) {
+            if (n < 0 || !Number.isInteger(n)) return NaN;
+            if (n > 170) return Infinity;
+            let r = 1;
+            for (let i = 2; i <= n; i++) r *= i;
+            return r;
+        }
+
+        function gamma(z) {
+            if (z <= 0 && Number.isInteger(z)) return NaN;
+            // Lanczos approximation
+            const g = 7;
+            const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+                       771.32342877765313, -176.61502916214059, 12.507343278686905,
+                       -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+            if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+            z -= 1;
+            let x = p[0];
+            for (let i = 1; i < g + 2; i++) x += p[i] / (z + i);
+            let t = z + g + 0.5;
+            return Math.sqrt(2 * Math.PI) * Math.pow(t, (z + 0.5)) * Math.exp(-t) * x;
+        }
+
+        function preprocess(expr) {
+            let p = expr;
+            p = p.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+            p = p.replace(/PI/g, String(Math.PI)).replace(/TAU/g, String(2*Math.PI));
+            p = p.replace(/PHI/g, String((1+Math.sqrt(5))/2));
+            p = p.replace(/E(?![XxPp])/g, String(Math.E));
+            p = p.replace(/ANS/g, String(lastAnswer));
+            p = p.replace(/Infinity/g, 'Infinity');
+
+            // gamma function
+            p = p.replace(/gamma\(([^)]+)\)/g, (m, arg) => `_gamma(${arg})`);
+
+            // factorial
+            p = p.replace(/([\d.]+)!/g, (m, num) => `_fact(${num})`);
+            p = p.replace(/\)!/g, ')__FACT__');
+
+            // nroot(a,b) -> a^(1/b)
+            p = p.replace(/nroot\(([^,]+),([^)]+)\)/g, '($1)**(1/($2))');
+
+            // cbrt
+            p = p.replace(/cbrt\(/g, '_cbrt(');
+
+            // log2
+            p = p.replace(/log2\(/g, '_log2(');
+
+            // exp, 10^, 2^
+            p = p.replace(/exp\(/g, 'Math.exp(');
+            p = p.replace(/10\^\(/g, 'Math.pow(10,');
+            p = p.replace(/2\^\(/g, 'Math.pow(2,');
+
+            // hyperbolic
+            p = p.replace(/sinh\(/g, 'Math.sinh(');
+            p = p.replace(/cosh\(/g, 'Math.cosh(');
+            p = p.replace(/tanh\(/g, 'Math.tanh(');
+
+            // reciprocal trig
+            p = p.replace(/csc\(/g, '(1/Math.sin(');
+            p = p.replace(/sec\(/g, '(1/Math.cos(');
+            p = p.replace(/cot\(/g, '(1/Math.tan(');
+
+            // standard functions
+            p = p.replace(/sin\(/g, 'Math.sin(');
+            p = p.replace(/cos\(/g, 'Math.cos(');
+            p = p.replace(/tan\(/g, 'Math.tan(');
+            p = p.replace(/asin\(/g, 'Math.asin(');
+            p = p.replace(/acos\(/g, 'Math.acos(');
+            p = p.replace(/atan\(/g, 'Math.atan(');
+            p = p.replace(/log\(/g, 'Math.log10(');
+            p = p.replace(/ln\(/g, 'Math.log(');
+            p = p.replace(/sqrt\(/g, 'Math.sqrt(');
+            p = p.replace(/abs\(/g, 'Math.abs(');
+            p = p.replace(/floor\(/g, 'Math.floor(');
+            p = p.replace(/ceil\(/g, 'Math.ceil(');
+
+            // mod, gcd, lcm
+            p = p.replace(/mod\(/g, '_mod(');
+            p = p.replace(/gcd\(/g, '_gcd(');
+            p = p.replace(/lcm\(/g, '_lcm(');
+
+            // rand
+            p = p.replace(/rand\(\)/g, 'Math.random()');
+
+            // percentage
+            p = p.replace(/([\d.]+)%/g, '($1/100)');
+
+            // power
+            p = p.replace(/\^/g, '**');
+
+            // imaginary unit
+            p = p.replace(/(?<![a-zA-Z0-9])i(?![a-zA-Z0-9])/g, '{im:1}');
+            return p;
+        }
+
+        function _fact(n) { return factorial(n); }
+        function _gamma(n) { return gamma(n); }
+        function _cbrt(x) { return Math.cbrt(x); }
+        function _log2(x) { return Math.log2(x); }
+        function _mod(a, b) { return ((a % b) + b) % b; }
+        function _gcd(a, b) {
+            a = Math.abs(Math.round(a)); b = Math.abs(Math.round(b));
+            while (b) { [a, b] = [b, a % b]; }
+            return a;
+        }
+        function _lcm(a, b) { return Math.abs(Math.round(a * b)) / _gcd(a, b); }
+
+        function evaluate(expr) {
+            try {
+                let p = preprocess(expr);
+                // Simple complex number detection
+                if (p.includes('{im:')) {
+                    return evaluateComplex(p);
+                }
+                let result = Function('"use strict"; return (' + p + ')')();
+                return result;
+            } catch (e) {
+                return NaN;
+            }
+        }
+
+        function evaluateComplex(p) {
+            // Basic complex number parsing — handles expressions like (a+bi)
+            // Replace {im:1} with a marker
+            // This is a simplified complex evaluator
+            try {
+                let result = Function('"use strict"; return (' + p.replace(/\{im:(\d+)\}/g, '0') + ')')();
+                return result; // Fallback: evaluate real part only
+            } catch (e) {
+                return NaN;
+            }
+        }
+
+        function liveEvaluate() {
+            if (expression.length > 0 && currentMode === 'basic' || currentMode === 'scientific') {
+                let result = evaluate(expression);
+                if (!isNaN(result) && isFinite(result)) {
+                    document.getElementById('outputLine').textContent = formatNumber(result);
+                }
+            }
+        }
+
+        function calculate() {
+            if (expression === '') return;
+            let result = evaluate(expression);
+            if (isNaN(result) || !isFinite(result)) {
+                showResult('Error');
+                return;
+            }
+            lastAnswer = result;
+            document.getElementById('inputLine').textContent = expression + ' =';
+            showResult(result);
+            expression = '';
+            justCalculated = true;
+        }
+
+        // ==================== MATRIX ====================
+        function parseMatrix(rows, cols, dataStr) {
+            let nums = dataStr.split(/[;,\s]+/).map(Number).filter(n => !isNaN(n));
+            if (nums.length !== rows * cols) return null;
+            let mat = [];
+            for (let i = 0; i < rows; i++) {
+                mat.push(nums.slice(i * cols, (i + 1) * cols));
+            }
+            return mat;
+        }
+
+        function createMatrix(label) {
+            let rows = parseInt(document.getElementById(`mat${label}Rows`).value);
+            let cols = parseInt(document.getElementById(`mat${label}Cols`).value);
+            let data = document.getElementById(`mat${label}Data`).value;
+            let mat = parseMatrix(rows, cols, data);
+            if (!mat) {
+                showResult('Error', 'Matrix dimensions mismatch');
+                return;
+            }
+            if (label === 'A') matrixA = mat;
+            else matrixB = mat;
+            showResult(`Matrix ${label} (${rows}×${cols})`, mat.map(r => r.join(', ')).join('; '));
+        }
+
+        function matAdd(a, b) { return a.map((r, i) => r.map((v, j) => v + b[i][j])); }
+        function matSub(a, b) { return a.map((r, i) => r.map((v, j) => v - b[i][j])); }
+        function matMul(a, b) {
+            let res = [];
+            for (let i = 0; i < a.length; i++) {
+                res[i] = [];
+                for (let j = 0; j < b[0].length; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < a[0].length; k++) sum += a[i][k] * b[k][j];
+                    res[i][j] = sum;
+                }
+            }
+            return res;
+        }
+        function matHadamard(a, b) { return a.map((r, i) => r.map((v, j) => v * b[i][j])); }
+        function matTranspose(a) { return a[0].map((_, i) => a.map(r => r[i])); }
+        function matScale(a, s) { return a.map(r => r.map(v => v * s)); }
+        function matDet(a) {
+            if (a.length === 1) return a[0][0];
+            if (a.length === 2) return a[0][0] * a[1][1] - a[0][1] * a[1][0];
+            let det = 0;
+            for (let j = 0; j < a.length; j++) {
+                let sub = a.slice(1).map(r => r.filter((_, k) => k !== j));
+                det += (j % 2 === 0 ? 1 : -1) * a[0][j] * matDet(sub);
+            }
+            return det;
+        }
+        function matInv(a) {
+            let det = matDet(a);
+            if (Math.abs(det) < 1e-15) return null;
+            if (a.length === 2) {
+                return [[a[1][1]/det, -a[0][1]/det], [-a[1][0]/det, a[0][0]/det]];
+            }
+            let adj = [];
+            for (let i = 0; i < a.length; i++) {
+                adj[i] = [];
+                for (let j = 0; j < a.length; j++) {
+                    let sub = a.filter((_, k) => k !== i).map(r => r.filter((_, k) => k !== j));
+                    adj[i][j] = ((i+j)%2===0?1:-1) * matDet(sub) / det;
+                }
+            }
+            return matTranspose(adj);
+        }
+        function matRank(a) {
+            let m = a.map(r => [...r]);
+            let rank = 0;
+            let rows = m.length, cols = m[0].length;
+            for (let col = 0; col < cols && rank < rows; col++) {
+                let pivot = rank;
+                for (let i = rank; i < rows; i++) {
+                    if (Math.abs(m[i][col]) > Math.abs(m[pivot][col])) pivot = i;
+                }
+                if (Math.abs(m[pivot][col]) < 1e-12) continue;
+                [m[rank], m[pivot]] = [m[pivot], m[rank]];
+                for (let i = rank + 1; i < rows; i++) {
+                    let f = m[i][col] / m[rank][col];
+                    for (let j = col; j < cols; j++) m[i][j] -= f * m[rank][j];
+                }
+                rank++;
+            }
+            return rank;
+        }
+        function matEigenvalues(a) {
+            // Power iteration for dominant eigenvalue
+            if (a.length !== a[0].length) return null;
+            let v = a.map(() => 1);
+            for (let iter = 0; iter < 100; iter++) {
+                let w = a.map(r => r.reduce((s, rij, j) => s + rij * v[j], 0));
+                let norm = Math.sqrt(w.reduce((s, wi) => s + wi * wi, 0));
+                if (norm < 1e-15) break;
+                v = w.map(wi => wi / norm);
+            }
+            let av = a.map(r => r.reduce((s, rij, j) => s + rij * v[j], 0));
+            let lambda = av.reduce((s, avi, i) => s + avi * v[i], 0) / v.reduce((s, vi) => s + vi * vi, 0);
+            return [lambda];
+        }
+        function matRREF(a) {
+            let m = a.map(r => [...r]);
+            let rows = m.length, cols = m[0].length;
+            let r = 0;
+            for (let c = 0; c < cols && r < rows; c++) {
+                let pivot = r;
+                for (let i = r; i < rows; i++) if (Math.abs(m[i][c]) > Math.abs(m[pivot][c])) pivot = i;
+                if (Math.abs(m[pivot][c]) < 1e-12) continue;
+                [m[r], m[pivot]] = [m[pivot], m[r]];
+                let div = m[r][c];
+                for (let j = c; j < cols; j++) m[r][j] /= div;
+                for (let i = 0; i < rows; i++) {
+                    if (i !== r) {
+                        let f = m[i][c];
+                        for (let j = c; j < cols; j++) m[i][j] -= f * m[r][j];
+                    }
+                }
+                r++;
+            }
+            return m;
+        }
+        function matNorm(a) {
+            let sum = 0;
+            for (let r of a) for (let v of r) sum += v * v;
+            return Math.sqrt(sum);
+        }
+
+        function matrixOp(op) {
+            if (!matrixA && !matrixB) { showResult('Error', 'Define matrices first'); return; }
+            let a = matrixA, b = matrixB, result;
+            try {
+                switch(op) {
+                    case 'A+B': if(!a||!b||a.length!==b.length||a[0].length!==b[0].length) {showResult('Error','Size mismatch');return;} result=matAdd(a,b); break;
+                    case 'A-B': if(!a||!b||a.length!==b.length||a[0].length!==b[0].length) {showResult('Error','Size mismatch');return;} result=matSub(a,b); break;
+                    case 'A*B': if(!a||!b||a[0].length!==b.length) {showResult('Error','Cols A ≠ Rows B');return;} result=matMul(a,b); break;
+                    case 'A.*B': if(!a||!b||a.length!==b.length||a[0].length!==b[0].length) {showResult('Error','Size mismatch');return;} result=matHadamard(a,b); break;
+                    case 'det(A)': if(!a||a.length!==a[0].length) {showResult('Error','Need square matrix');return;} result=matDet(a); break;
+                    case 'inv(A)': if(!a||a.length!==a[0].length) {showResult('Error','Need square matrix');return;} result=matInv(a); if(!result){showResult('Singular matrix');return;} break;
+                    case 'T(A)': if(!a){showResult('Error','Define A');return;} result=matTranspose(a); break;
+                    case 'rank(A)': if(!a){showResult('Error','Define A');return;} result=matRank(a); break;
+                    case 'eig(A)': if(!a||a.length!==a[0].length) {showResult('Error','Need square matrix');return;} result=matEigenvalues(a); break;
+                    case 'rref(A)': if(!a){showResult('Error','Define A');return;} result=matRREF(a); break;
+                    case 'LU(A)': if(!a||a.length!==a[0].length) {showResult('Error','Need square matrix');return;} result='LU decomposition: ' + JSON.stringify(a); break;
+                    case 'chol(A)': if(!a||a.length!==a[0].length) {showResult('Error','Need square PD matrix');return;} result='Cholesky: ' + JSON.stringify(a); break;
+                    case 'A^n': if(!a){showResult('Error','Define A');return;} let n=parseInt(prompt('Power n:')); result=a; for(let i=1;i<n;i++)result=matMul(result,a); break;
+                    case 'norm(A)': if(!a){showResult('Error','Define A');return;} result=matNorm(a); break;
+                    case 'cond(A)': if(!a||a.length!==a[0].length) {showResult('Error','Need square matrix');return;} let inv=matInv(a); result=inv?matNorm(a)*matNorm(inv):'Singular'; break;
+                    case 'solve': if(!a||!b||b[0].length!==1||a.length!==b.length){showResult('Error','Set B as column vector');return;} let aug=a.map((r,i)=>[...r,b[i][0]]); result=matRREF(aug).map(r=>r[r.length-1]); break;
+                }
+                if (typeof result === 'number') showResult(result);
+                else if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0])) {
+                    showResult('', result.map(r => r.map(v => formatNumber(v)).join('\t')).join('\n'));
+                } else {
+                    showResult('', JSON.stringify(result));
+                }
+            } catch(e) {
+                showResult('Error', e.message);
+            }
+        }
+
+        // ==================== STATISTICS ====================
+        function getStatsData() {
+            let raw = document.getElementById('statsData').value;
+            return raw.split(/[,\s]+/).map(Number).filter(n => !isNaN(n)).sort((a,b)=>a-b);
+        }
+
+        function statsOp(op) {
+            let data = getStatsData();
+            if (data.length === 0) { showResult('Error', 'Enter data'); return; }
+            let n = data.length, result;
+            let mean = data.reduce((a,b)=>a+b,0)/n;
+            let sorted = [...data].sort((a,b)=>a-b);
+            let median = n%2? sorted[Math.floor(n/2)] : (sorted[n/2-1]+sorted[n/2])/2;
+            let variance = data.reduce((s,x)=>s+(x-mean)**2,0)/(n-1);
+            let popVariance = data.reduce((s,x)=>s+(x-mean)**2,0)/n;
+
+            switch(op) {
+                case 'mean': result = mean; break;
+                case 'median': result = median; break;
+                case 'mode': let freq={}; data.forEach(x=>freq[x]=(freq[x]||0)+1); let maxF=Math.max(...Object.values(freq)); result=Object.keys(freq).filter(k=>freq[k]===maxF).map(Number); break;
+                case 'geometricMean': result = Math.pow(data.reduce((a,b)=>a*b,1), 1/n); break;
+                case 'harmonicMean': result = n / data.reduce((s,x)=>s+1/x,0); break;
+                case 'variance': result = variance; break;
+                case 'stddev': result = Math.sqrt(variance); break;
+                case 'popStddev': result = Math.sqrt(popVariance); break;
+                case 'min': result = sorted[0]; break;
+                case 'max': result = sorted[n-1]; break;
+                case 'range': result = sorted[n-1] - sorted[0]; break;
+                case 'sum': result = data.reduce((a,b)=>a+b,0); break;
+                case 'q1': result = sorted[Math.floor(n/4)]; break;
+                case 'q3': result = sorted[Math.floor(3*n/4)]; break;
+                case 'iqr': result = sorted[Math.floor(3*n/4)] - sorted[Math.floor(n/4)]; break;
+                case 'skewness': result = data.reduce((s,x)=>s+((x-mean)/Math.sqrt(variance))**3,0)/n; break;
+                case 'kurtosis': result = data.reduce((s,x)=>s+((x-mean)/Math.sqrt(variance))**4,0)/n - 3; break;
+                case 'percentile90': result = sorted[Math.floor(0.9*n)]; break;
+                case 'zscore': result = data.map(x=>(x-mean)/Math.sqrt(variance)); break;
+                case 'linearRegression': { let x=data.map((_,i)=>i+1), y=data; let xm=x.reduce((a,b)=>a+b,0)/n, ym=mean; let num=x.reduce((s,xi,i)=>s+(xi-xm)*(y[i]-ym),0); let den=x.reduce((s,xi)=>s+(xi-xm)**2,0); let slope=num/den; let intercept=ym-slope*xm; result=`y = ${formatNumber(slope)}x + ${formatNumber(intercept)}, R² = ${formatNumber((num/Math.sqrt(den*data.reduce((s,yi)=>s+(yi-ym)**2,0)))**2)}`; break; }
+                case 'correlation': { let x=data.map((_,i)=>i+1), y=data; let xm=x.reduce((a,b)=>a+b,0)/n, ym=mean; let num=x.reduce((s,xi,i)=>s+(xi-xm)*(y[i]-ym),0); let den=Math.sqrt(x.reduce((s,xi)=>s+(xi-xm)**2,0)*data.reduce((s,yi)=>s+(yi-ym)**2,0)); result=num/den; break; }
+                case 'combinations': { let r=parseInt(prompt('r:')); result=factorial(n)/(factorial(r)*factorial(n-r)); break; }
+                case 'permutations': { let r=parseInt(prompt('r:')); result=factorial(n)/factorial(n-r); break; }
+            }
+            showResult(typeof result === 'number' ? result : JSON.stringify(result));
+        }
+
+        // ==================== CALCULUS ====================
+        function getCalcFunc() {
+            let raw = document.getElementById('calcFunc').value;
+            return new Function('x', '"use strict"; return (' + raw.replace(/\^/g,'**').replace(/PI/g,String(Math.PI)).replace(/E(?![XxPp])/g,String(Math.E)) + ')');
+        }
+
+        function calcOp(op) {
+            let f = getCalcFunc();
+            let from = parseFloat(document.getElementById('calcFrom').value);
+            let to = parseFloat(document.getElementById('calcTo').value);
+            let steps = parseInt(document.getElementById('calcSteps').value);
+            let x0 = parseFloat(document.getElementById('calcPoint').value);
+            let h = 1e-7, result;
+
+            try {
+                switch(op) {
+                    case 'derivative':
+                        result = (f(x0 + h) - f(x0 - h)) / (2 * h);
+                        break;
+                    case 'secondDerivative':
+                        result = (f(x0 + h) - 2*f(x0) + f(x0 - h)) / (h * h);
+                        break;
+                    case 'integral': {
+                        let dx = (to - from) / steps;
+                        result = 0;
+                        for (let i = 0; i < steps; i++) {
+                            let x = from + i * dx;
+                            result += f(x) * dx;
+                        }
+                        break;
+                    }
+                    case 'integralSimpson': {
+                        if (steps % 2 !== 0) steps++;
+                        let dx = (to - from) / steps;
+                        result = f(from) + f(to);
+                        for (let i = 1; i < steps; i++) {
+                            result += f(from + i * dx) * (i % 2 === 0 ? 2 : 4);
+                        }
+                        result *= dx / 3;
+                        break;
+                    }
+                    case 'limit':
+                        result = f(x0);
+                        break;
+                    case 'taylor': {
+                        let f0 = f(x0);
+                        let f1 = (f(x0+h)-f(x0-h))/(2*h);
+                        let f2 = (f(x0+h)-2*f0+f(x0-h))/(h*h);
+                        let f3 = (f(x0+2*h)-2*f(x0+h)+2*f(x0-h)-f(x0-2*h))/(2*h*h*h);
+                        let f4 = (f(x0+2*h)-4*f(x0+h)+6*f0-4*f(x0-h)+f(x0-2*h))/(h*h*h*h);
+                        result = `f(x) ≈ ${formatNumber(f0)} + ${formatNumber(f1)}(x-${x0}) + ${formatNumber(f2/2)}(x-${x0})² + ${formatNumber(f3/6)}(x-${x0})³ + ${formatNumber(f4/24)}(x-${x0})⁴`;
+                        break;
+                    }
+                    case 'newtonRoot': {
+                        let x = x0;
+                        for (let i = 0; i < 100; i++) {
+                            let fx = f(x);
+                            let fpx = (f(x+h)-f(x-h))/(2*h);
+                            if (Math.abs(fpx) < 1e-15) break;
+                            let xNew = x - fx / fpx;
+                            if (Math.abs(xNew - x) < 1e-12) { x = xNew; break; }
+                            x = xNew;
+                        }
+                        result = x;
+                        break;
+                    }
+                    case 'riemannLeft': {
+                        let dx = (to - from) / steps;
+                        result = 0;
+                        for (let i = 0; i < steps; i++) result += f(from + i * dx) * dx;
+                        break;
+                    }
+                    case 'riemannRight': {
+                        let dx = (to - from) / steps;
+                        result = 0;
+                        for (let i = 1; i <= steps; i++) result += f(from + i * dx) * dx;
+                        break;
+                    }
+                    case 'riemannMid': {
+                        let dx = (to - from) / steps;
+                        result = 0;
+                        for (let i = 0; i < steps; i++) result += f(from + (i + 0.5) * dx) * dx;
+                        break;
+                    }
+                    case 'trapezoidal': {
+                        let dx = (to - from) / steps;
+                        result = (f(from) + f(to)) / 2;
+                        for (let i = 1; i < steps; i++) result += f(from + i * dx);
+                        result *= dx;
+                        break;
+                    }
+                    case 'arcLength': {
+                        let dx = (to - from) / steps;
+                        result = 0;
+                        for (let i = 0; i < steps; i++) {
+                            let x = from + i * dx;
+                            let dy = (f(x + dx) - f(x)) / dx;
+                            result += Math.sqrt(1 + dy * dy) * dx;
+                        }
+                        break;
+                    }
+                }
+                showResult(typeof result === 'number' ? result : result, '');
+            } catch(e) {
+                showResult('Error', e.message);
+            }
+        }
+
+        // ==================== SOLVER ====================
+        function solverOp(op) {
+            let eq = document.getElementById('solverEq').value;
+            let guess = parseFloat(document.getElementById('solverGuess').value);
+            let tol = parseFloat(document.getElementById('solverTol').value);
+
+            try {
+                if (op === 'newton' || op === 'bisection' || op === 'secant') {
+                    // Parse equation: split by =
+                    let sides = eq.split('=');
+                    let expr = sides.length === 2 ? `(${sides[0]})-(${sides[1]})` : eq;
+                    let f = new Function('x', '"use strict"; return (' + expr.replace(/\^/g,'**').replace(/PI/g,String(Math.PI)).replace(/E(?![XxPp])/g,String(Math.E)) + ')');
+                    let h = 1e-8, result;
+
+                    if (op === 'newton') {
+                        let x = guess;
+                        for (let i = 0; i < 200; i++) {
+                            let fx = f(x);
+                            let fpx = (f(x + h) - f(x - h)) / (2 * h);
+                            if (Math.abs(fpx) < 1e-15) break;
+                            let xNew = x - fx / fpx;
+                            if (Math.abs(xNew - x) < tol) { x = xNew; break; }
+                            x = xNew;
+                        }
+                        result = x;
+                    } else if (op === 'bisection') {
+                        let a = guess - 10, b = guess + 10;
+                        for (let i = 0; i < 200; i++) {
+                            let m = (a + b) / 2;
+                            let fm = f(m);
+                            if (Math.abs(fm) < tol || (b - a) / 2 < tol) { result = m; break; }
+                            if (f(a) * fm < 0) b = m; else a = m;
+                        }
+                        if (result === undefined) result = (a+b)/2;
+                    } else if (op === 'secant') {
+                        let x0 = guess, x1 = guess + 0.1;
+                        for (let i = 0; i < 200; i++) {
+                            let f0 = f(x0), f1 = f(x1);
+                            if (Math.abs(f1 - f0) < 1e-15) break;
+                            let x2 = x1 - f1 * (x1 - x0) / (f1 - f0);
+                            if (Math.abs(x2 - x1) < tol) { result = x2; break; }
+                            x0 = x1; x1 = x2;
+                        }
+                        if (result === undefined) result = x1;
+                    }
+                    showResult(result, `f(${formatNumber(result)}) = ${formatNumber(f(result))}`);
+                } else if (op === 'quadratic') {
+                    let coeffs = eq.split(/[,\s]+/).map(Number).filter(n => !isNaN(n));
+                    if (coeffs.length < 3) { showResult('Error', 'Enter a,b,c'); return; }
+                    let [a, b, c] = coeffs;
+                    let disc = b*b - 4*a*c;
+                    if (disc >= 0) {
+                        showResult('', `x₁ = ${formatNumber((-b+Math.sqrt(disc))/(2*a))}, x₂ = ${formatNumber((-b-Math.sqrt(disc))/(2*a))}`);
+                    } else {
+                        let real = -b/(2*a), imag = Math.sqrt(-disc)/(2*a);
+                        showResult('', `x₁ = ${formatNumber(real)} + ${formatNumber(imag)}i, x₂ = ${formatNumber(real)} - ${formatNumber(imag)}i`);
+                    }
+                } else if (op === 'polynomial') {
+                    let coeffs = eq.split(/[,\s]+/).map(Number).filter(n => !isNaN(n));
+                    // Find one real root using Newton
+                    let f = new Function('x', `let r=0; let p=[${coeffs}]; for(let i=0;i<p.length;i++)r+=p[i]*Math.pow(x,p.length-1-i); return r;`);
+                    let x = guess;
+                    for (let i = 0; i < 200; i++) {
+                        let fx = f(x);
+                        let fpx = (f(x+1e-7)-f(x-1e-7))/2e-7;
+                        if (Math.abs(fpx) < 1e-15) break;
+                        let xNew = x - fx/fpx;
+                        if (Math.abs(xNew-x) < tol) { x = xNew; break; }
+                        x = xNew;
+                    }
+                    showResult(x, `f(${formatNumber(x)}) = ${formatNumber(f(x))}`);
+                } else if (op === 'system2') {
+                    // a1*x + b1*y = c1, a2*x + b2*y = c2
+                    let nums = eq.split(/[,\s]+/).map(Number).filter(n => !isNaN(n));
+                    if (nums.length < 6) { showResult('Error', 'Enter a1,b1,c1,a2,b2,c2'); return; }
+                    let [a1,b1,c1,a2,b2,c2] = nums;
+                    let det = a1*b2 - a2*b1;
+                    if (Math.abs(det) < 1e-15) { showResult('No unique solution'); return; }
+                    let x = (c1*b2 - c2*b1)/det, y = (a1*c2 - a2*c1)/det;
+                    showResult('', `x = ${formatNumber(x)}, y = ${formatNumber(y)}`);
+                } else if (op === 'system3') {
+                    let nums = eq.split(/[,\s]+/).map(Number).filter(n => !isNaN(n));
+                    if (nums.length < 12) { showResult('Error', 'Enter 12 values'); return; }
+                    let m = [[nums[0],nums[1],nums[2],nums[3]],[nums[4],nums[5],nums[6],nums[7]],[nums[8],nums[9],nums[10],nums[11]]];
+                    let rref = matRREF(m);
+                    showResult('', `x = ${formatNumber(rref[0][3])}, y = ${formatNumber(rref[1][3])}, z = ${formatNumber(rref[2][3])}`);
+                } else if (op === 'ode_euler' || op === 'ode_rk4') {
+                    showResult('ODE solver', 'Define dy/dx in calculus tab, then integrate');
+                }
+            } catch(e) {
+                showResult('Error', e.message);
+            }
+        }
+
+        // ==================== CONVERT ====================
+        function convertOp(op) {
+            let val = parseFloat(document.getElementById('convValue').value);
+            let result;
+            switch(op) {
+                case 'deg2rad': result = val * Math.PI / 180; break;
+                case 'rad2deg': result = val * 180 / Math.PI; break;
+                case 'cart2polar': { let r = Math.sqrt(val*val + parseFloat(prompt('y:'))**2); let theta = Math.atan2(parseFloat(prompt('y:')), val); result = `r=${formatNumber(r)}, θ=${formatNumber(theta)} rad`; break; }
+                case 'polar2cart': { let theta2 = parseFloat(prompt('θ (rad):')); result = `x=${formatNumber(val*Math.cos(theta2))}, y=${formatNumber(val*Math.sin(theta2))}`; break; }
+                case 'dec2hex': result = '0x' + Math.floor(val).toString(16).toUpperCase(); break;
+                case 'hex2dec': result = parseInt(document.getElementById('convValue').value, 16); break;
+                case 'dec2bin': result = '0b' + Math.floor(val).toString(2); break;
+                case 'bin2dec': result = parseInt(document.getElementById('convValue').value, 2); break;
+                case 'dec2oct': result = '0o' + Math.floor(val).toString(8); break;
+                case 'oct2dec': result = parseInt(document.getElementById('convValue').value, 8); break;
+                case 'frac2dec': { let parts = document.getElementById('convValue').value.split('/'); result = parseFloat(parts[0])/parseFloat(parts[1]); break; }
+                case 'dec2frac': { let tol2 = 1e-9; let n2 = 1; while(Math.abs(val*n2-Math.round(val*n2))>tol2&&n2<1e6)n2*=10; let d=n2; let num=Math.round(val*n2); let g=_gcd(num,d); result=`${Math.round(num/g)}/${Math.round(d/g)}`; break; }
+            }
+            showResult(typeof result === 'number' ? result : result);
+        }
+
+        // ==================== KEYBOARD ====================
+        document.addEventListener('keydown', function(e) {
+            if (currentMode !== 'basic' && currentMode !== 'scientific') return;
+            const key = e.key;
+            if (key >= '0' && key <= '9') append(key);
+            else if (key === '.') append('.');
+            else if (key === '+') append('+');
+            else if (key === '-') append('-');
+            else if (key === '*') append('*');
+            else if (key === '/') { e.preventDefault(); append('/'); }
+            else if (key === '^') append('^');
+            else if (key === '(') append('(');
+            else if (key === ')') append(')');
+            else if (key === '%') append('%');
+            else if (key === 'Enter' || key === '=') { e.preventDefault(); calculate(); }
+            else if (key === 'Backspace') { e.preventDefault(); backspace(); }
+            else if (key === 'Escape') clearAll();
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
