@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniCalc - Universal Math & Science Engine</title>
+    <style>
+        :root {
+            --bg: #08080d;
+            --surface: #0f0f18;
+            --surface2: #151520;
+            --border: rgba(255, 255, 255, 0.06);
+            --text: #e8e8f0;
+            --text2: #9999aa;
+            --accent: #00e6a0;
+            --accent2: #7c6ff7;
+            --accent3: #ff6b6b;
+            --warning: #ffa726;
+            --info: #42a5f5;
+            --btn: #1a1a2e;
+            --btn-hover: #252540;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.15s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            padding: 8px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .header .logo {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header .badge {
+            font-size: 0.7rem;
+            background: var(--surface2);
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: var(--text2);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Main Tab Navigation */
+        .main-tabs {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .main-tabs button {
+            padding: 10px 16px;
+            border: 1px solid transparent;
+            background: var(--surface);
+            color: var(--text2);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 500;
+            transition: all var(--transition);
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .main-tabs button:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+        .main-tabs button.active {
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            border-color: var(--accent);
+        }
+
+        /* Content Area */
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .content.full-width {
+            grid-template-columns: 1fr;
+        }
+
+        /* Panel */
+        .panel {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px;
+            border: 1px solid var(--border);
+        }
+        .panel h3 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            color: var(--text2);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .panel.wide {
+            grid-column: 1 / -1;
+        }
+
+        /* Display */
+        .display-area {
+            background: #06060c;
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            border: 1px solid var(--border);
+            grid-column: 1 / -1;
+        }
+        .display-expr {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 1rem;
+            color: var(--text2);
+            min-height: 22px;
+            word-break: break-all;
+            margin-bottom: 4px;
+        }
+        .display-result {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 2.6rem;
+            font-weight: 300;
+            color: #fff;
+            word-break: break-all;
+            line-height: 1.15;
+        }
+        .display-result.error {
+            color: var(--accent3);
+            font-size: 1.3rem;
+        }
+        .display-secondary {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 1rem;
+            color: var(--text2);
+            margin-top: 4px;
+            min-height: 20px;
+        }
+
+        /* Button Grids */
+        .btn-grid {
+            display: grid;
+            gap: 6px;
+        }
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        .grid-5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        button {
+            padding: 11px 6px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: var(--radius-sm);
+            font-size: 0.84rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: inherit;
+            color: var(--text);
+            background: var(--btn);
+            white-space: nowrap;
+            text-align: center;
+        }
+        button:hover {
+            background: var(--btn-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+        button:active {
+            transform: scale(0.95);
+            transition: transform 0.04s;
+        }
+        button.btn-accent {
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            border: none;
+        }
+        button.btn-accent:hover {
+            background: #00f5b3;
+            box-shadow: 0 6px 24px rgba(0, 230, 160, 0.35);
+        }
+        button.btn-op {
+            background: #ff6b35;
+            color: #fff;
+            font-weight: 700;
+            border: none;
+        }
+        button.btn-op:hover {
+            background: #ff8154;
+            box-shadow: 0 6px 24px rgba(255, 107, 53, 0.3);
+        }
+        button.btn-sci {
+            background: #3d5a80;
+            color: #fff;
+            font-size: 0.76rem;
+            border: none;
+        }
+        button.btn-sci:hover {
+            background: #4e6d98;
+            box-shadow: 0 6px 20px rgba(61, 90, 128, 0.35);
+        }
+        button.btn-phys {
+            background: #5c3d7a;
+            color: #fff;
+            font-size: 0.76rem;
+            border: none;
+        }
+        button.btn-phys:hover {
+            background: #724e94;
+            box-shadow: 0 6px 20px rgba(92, 61, 122, 0.35);
+        }
+        button.btn-chem {
+            background: #2e6b5e;
+            color: #fff;
+            font-size: 0.76rem;
+            border: none;
+        }
+        button.btn-chem:hover {
+            background: #3a8575;
+            box-shadow: 0 6px 20px rgba(46, 107, 94, 0.35);
+        }
+        button.btn-math {
+            background: #6b3a5e;
+            color: #fff;
+            font-size: 0.76rem;
+            border: none;
+        }
+        button.btn-math:hover {
+            background: #854a76;
+            box-shadow: 0 6px 20px rgba(107, 58, 94, 0.35);
+        }
+        button.btn-clear {
+            background: #2a2a3a;
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+        button.btn-mem {
+            background: #1e1e2e;
+            font-size: 0.72rem;
+            color: #777;
+        }
+
+        /* Inputs & Selects */
+        input[type="number"],
+        input[type="text"],
+        select {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            background: #14141e;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            width: 100%;
+            transition: border var(--transition);
+        }
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 230, 160, 0.1);
+        }
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 32px;
+        }
+
+        /* Formula Result Box */
+        .formula-result {
+            background: #0a0a14;
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            margin-top: 10px;
+            border: 1px solid var(--accent);
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 1.2rem;
+            color: var(--accent);
+            word-break: break-all;
+            min-height: 40px;
+        }
+        .formula-result .label {
+            font-size: 0.7rem;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        /* Matrix */
+        .matrix-grid {
+            display: grid;
+            gap: 4px;
+            margin: 8px 0;
+        }
+        .matrix-grid input {
+            text-align: center;
+            font-size: 0.8rem;
+            padding: 8px 4px;
+        }
+
+        /* History */
+        .history-list {
+            max-height: 180px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.78rem;
+        }
+        .history-list div {
+            padding: 7px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background var(--transition);
+            color: var(--text2);
+        }
+        .history-list div:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+        }
+        .history-list::-webkit-scrollbar {
+            width: 3px;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .row>* {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: 0.68rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background: var(--surface2);
+            color: var(--text2);
+            margin: 2px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .tag:hover {
+            background: var(--accent);
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <span class="logo">OmniCalc</span>
+        </div>
+
+        <!-- Main Tabs -->
+        <div class="main-tabs" id="mainTabs">
+            <button class="active" data-tab="calculator">🧮 Calculator</button>
+            <button data-tab="algebra">📐 Algebra</button>
+            <button data-tab="calculus">∫ Calculus</button>
+            <button data-tab="matrix">🔲 Matrix</button>
+            <button data-tab="statistics">📊 Statistics</button>
+            <button data-tab="physics">⚛️ Physics</button>
+            <button data-tab="chemistry">🧪 Chemistry</button>
+            <button data-tab="converter">🔄 Converter</button>
+            <button data-tab="geometry">📏 Geometry</button>
+        </div>
+
+        <!-- ============ TAB: CALCULATOR ============ -->
+        <div class="tab-content" id="tab-calculator">
+            <div class="display-area">
+                <div class="display-expr" id="calcExpr">&nbsp;</div>
+                <div class="display-result" id="calcResult">0</div>
+                <div class="display-secondary" id="calcSecondary"></div>
+            </div>
+            <div class="content">
+                <div class="panel">
+                    <h3>🔢 Basic & Memory</h3>
+                    <div class="btn-grid grid-4">
+                        <button class="btn-clear" onclick="engine.clearAll()">AC</button>
+                        <button class="btn-clear" onclick="engine.backspace()">⌫</button>
+                        <button onclick="engine.append('%')">%</button>
+                        <button class="btn-op" onclick="engine.append('/')">÷</button>
+                        <button onclick="engine.append('7')">7</button>
+                        <button onclick="engine.append('8')">8</button>
+                        <button onclick="engine.append('9')">9</button>
+                        <button class="btn-op" onclick="engine.append('*')">×</button>
+                        <button onclick="engine.append('4')">4</button>
+                        <button onclick="engine.append('5')">5</button>
+                        <button onclick="engine.append('6')">6</button>
+                        <button class="btn-op" onclick="engine.append('-')">−</button>
+                        <button onclick="engine.append('1')">1</button>
+                        <button onclick="engine.append('2')">2</button>
+                        <button onclick="engine.append('3')">3</button>
+                        <button class="btn-op" onclick="engine.append('+')">+</button>
+                        <button onclick="engine.append('0')">0</button>
+                        <button onclick="engine.append('.')">.</button>
+                        <button onclick="engine.append('**')">xʸ</button>
+                        <button class="btn-accent" onclick="engine.evaluate()">=</button>
+                    </div>
+                    <div class="btn-grid grid-4" style="margin-top:8px;">
+                        <button class="btn-mem" onclick="engine.memoryStore()">MS</button>
+                        <button class="btn-mem" onclick="engine.memoryRecall()">MR</button>
+                        <button class="btn-mem" onclick="engine.memoryAdd()">M+</button>
+                        <button class="btn-mem" onclick="engine.memoryClear()">MC</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>🔬 Scientific Functions</h3>
+                    <div class="btn-grid grid-5">
+                        <button class="btn-sci" onclick="engine.appendFunc('sin(')">sin</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('cos(')">cos</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('tan(')">tan</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('log(')">log₁₀</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('ln(')">ln</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('asin(')">sin⁻¹</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('acos(')">cos⁻¹</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('atan(')">tan⁻¹</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('sqrt(')">√</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('cbrt(')">∛</button>
+                        <button class="btn-sci" onclick="engine.append('PI')">π</button>
+                        <button class="btn-sci" onclick="engine.append('E')">e</button>
+                        <button class="btn-sci" onclick="engine.append('!')">n!</button>
+                        <button class="btn-sci" onclick="engine.append('abs(')">|x|</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('round(')">rnd</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('sinh(')">sinh</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('cosh(')">cosh</button>
+                        <button class="btn-sci" onclick="engine.appendFunc('tanh(')">tanh</button>
+                        <button class="btn-sci" onclick="engine.append('**2')">x²</button>
+                        <button class="btn-sci" onclick="engine.append('**(-1)')">x⁻¹</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>📐 Constants</h3>
+                    <div class="btn-grid grid-3">
+                        <button class="btn-phys" onclick="engine.append('6.02214076e23')">Nₐ Avogadro</button>
+                        <button class="btn-phys" onclick="engine.append('1.602176634e-19')">e Charge</button>
+                        <button class="btn-phys" onclick="engine.append('6.62607015e-34')">h Planck</button>
+                        <button class="btn-phys" onclick="engine.append('2.99792458e8')">c Light</button>
+                        <button class="btn-phys" onclick="engine.append('6.67430e-11')">G Gravity</button>
+                        <button class="btn-phys" onclick="engine.append('8.314462618')">R Gas</button>
+                        <button class="btn-phys" onclick="engine.append('9.80665')">g Earth</button>
+                        <button class="btn-phys" onclick="engine.append('1.380649e-23')">k Boltzmann</button>
+                        <button class="btn-phys" onclick="engine.append('8.8541878128e-12')">ε₀ Permittivity</button>
+                        <button class="btn-phys" onclick="engine.append('1.25663706212e-6')">μ₀ Permeability</button>
+                        <button class="btn-phys" onclick="engine.append('5.670374419e-8')">σ Stefan</button>
+                        <button class="btn-phys" onclick="engine.append('2.718281828459')">e Euler</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>📋 History</h3>
+                    <button class="btn-mem" style="margin-bottom:8px;" onclick="engine.clearHistory()">Clear History</button>
+                    <div class="history-list" id="historyList"><div style="color:#444;">No history</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: ALGEBRA ============ -->
+        <div class="tab-content hidden" id="tab-algebra">
+            <div class="content">
+                <div class="panel wide">
+                    <h3>📐 Equation Solver (Quadratic: ax² + bx + c = 0)</h3>
+                    <div class="row">
+                        <div><label style="font-size:0.75rem;color:var(--text2);">a:</label><input type="number" id="quadA" value="1" step="any"></div>
+                        <div><label style="font-size:0.75rem;color:var(--text2);">b:</label><input type="number" id="quadB" value="0" step="any"></div>
+                        <div><label style="font-size:0.75rem;color:var(--text2);">c:</label><input type="number" id="quadC" value="-4" step="any"></div>
+                        <button class="btn-accent" onclick="algebra.solveQuadratic()" style="flex:0.5;">Solve</button>
+                    </div>
+                    <div class="formula-result" id="quadResult"><span class="label">Solution</span>Enter coefficients and click Solve</div>
+                </div>
+                <div class="panel">
+                    <h3>🔢 Polynomial Evaluation</h3>
+                    <label style="font-size:0.75rem;color:var(--text2);">Polynomial (use x as variable):</label>
+                    <input type="text" id="polyExpr" value="x**3 - 4*x**2 + x + 6" style="margin-bottom:8px;">
+                    <label style="font-size:0.75rem;color:var(--text2);">Evaluate at x =</label>
+                    <input type="number" id="polyX" value="2" step="any" style="margin-bottom:8px;">
+                    <button class="btn-accent" onclick="algebra.evalPolynomial()" style="width:100%;">Evaluate</button>
+                    <div class="formula-result" id="polyResult"><span class="label">Result</span></div>
+                </div>
+                <div class="panel">
+                    <h3>📏 System of 2 Equations</h3>
+                    <p style="font-size:0.7rem;color:var(--text2);">a₁x + b₁y = c₁<br>a₂x + b₂y = c₂</p>
+                    <div class="row" style="margin-top:8px;">
+                        <input type="number" id="sysA1" value="2" step="any" placeholder="a₁">
+                        <input type="number" id="sysB1" value="3" step="any" placeholder="b₁">
+                        <input type="number" id="sysC1" value="8" step="any" placeholder="c₁">
+                    </div>
+                    <div class="row" style="margin-top:4px;">
+                        <input type="number" id="sysA2" value="4" step="any" placeholder="a₂">
+                        <input type="number" id="sysB2" value="-1" step="any" placeholder="b₂">
+                        <input type="number" id="sysC2" value="2" step="any" placeholder="c₂">
+                    </div>
+                    <button class="btn-accent" onclick="algebra.solveSystem2()" style="width:100%;margin-top:8px;">Solve System</button>
+                    <div class="formula-result" id="sys2Result"><span class="label">Solution</span></div>
+                </div>
+                <div class="panel">
+                    <h3>🔗 GCD & LCM</h3>
+                    <div class="row">
+                        <input type="number" id="gcdA" value="48" step="1">
+                        <input type="number" id="gcdB" value="180" step="1">
+                    </div>
+                    <button class="btn-accent" onclick="algebra.gcdLcm()" style="width:100%;margin-top:8px;">Compute</button>
+                    <div class="formula-result" id="gcdResult"><span class="label">GCD & LCM</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: CALCULUS ============ -->
+        <div class="tab-content hidden" id="tab-calculus">
+            <div class="content">
+                <div class="panel wide">
+                    <h3>∫ Numerical Derivative</h3>
+                    <div class="row">
+                        <div style="flex:2;"><label style="font-size:0.75rem;color:var(--text2);">Function f(x):</label><input type="text" id="derivFunc" value="x**2 * sin(x)"></div>
+                        <div><label style="font-size:0.75rem;color:var(--text2);">At x =</label><input type="number" id="derivX" value="3" step="any"></div>
+                        <button class="btn-accent" onclick="calculus.derivative()" style="flex:0.5;">Compute f'(x)</button>
+                    </div>
+                    <div class="formula-result" id="derivResult"><span class="label">Derivative (numerical, h=1e-7)</span></div>
+                </div>
+                <div class="panel wide">
+                    <h3>∫ Definite Integral (Simpson's Rule, n=1000)</h3>
+                    <div class="row">
+                        <div style="flex:2;"><label style="font-size:0.75rem;color:var(--text2);">Function f(x):</label><input type="text" id="integFunc" value="x**2"></div>
+                        <div><label style="font-size:0.75rem;color:var(--text2);">a:</label><input type="number" id="integA" value="0" step="any"></div>
+                        <div><label style="font-size:0.75rem;color:var(--text2);">b:</label><input type="number" id="integB" value="3" step="any"></div>
+                        <button class="btn-accent" onclick="calculus.integral()" style="flex:0.5;">∫ Compute</button>
+                    </div>
+                    <div class="formula-result" id="integResult"><span class="label">Definite Integral</span></div>
+                </div>
+                <div class="panel wide">
+                    <h3>🔢 Limit (Approach from both sides, h=1e-7)</h3>
+                    <div class="row">
+                        <div style="flex:2;"><label style="font-size:0.75rem;color:var(--text2);">Function f(x):</label><input type="text" id="limitFunc" value="sin(x)/x"></div>
+                        <div><label style="font-size:0.75rem;color:var(--text2);">x →</label><input type="number" id="limitX" value="0" step="any"></div>
+                        <button class="btn-accent" onclick="calculus.limit()" style="flex:0.5;">Compute Limit</button>
+                    </div>
+                    <div class="formula-result" id="limitResult"><span class="label">Limit</span></div>
+                </div>
+                <div class="panel">
+                    <h3>📈 Taylor Series (n terms at x₀)</h3>
+                    <div class="row">
+                        <input type="text" id="taylorFunc" value="exp(x)" placeholder="f(x)">
+                        <input type="number" id="taylorX0" value="0" step="any" placeholder="x₀">
+                        <input type="number" id="taylorN" value="5" step="1" placeholder="terms" min="1" max="10">
+                        <input type="number" id="taylorEval" value="0.5" step="any" placeholder="eval at">
+                    </div>
+                    <button class="btn-accent" onclick="calculus.taylor()" style="width:100%;margin-top:8px;">Expand & Evaluate</button>
+                    <div class="formula-result" id="taylorResult"><span class="label">Taylor Approximation</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: MATRIX ============ -->
+        <div class="tab-content hidden" id="tab-matrix">
+            <div class="content">
+                <div class="panel wide">
+                    <h3>🔲 Matrix Operations (3×3 Max)</h3>
+                    <div class="row">
+                        <select id="matrixSize" onchange="matrix.setupMatrix()">
+                            <option value="2">2×2</option>
+                            <option value="3" selected>3×3</option>
+                        </select>
+                        <button class="btn-accent" onclick="matrix.determinant()">Determinant</button>
+                        <button class="btn-sci" onclick="matrix.inverse()">Inverse</button>
+                        <button class="btn-sci" onclick="matrix.transpose()">Transpose</button>
+                        <button class="btn-sci" onclick="matrix.eigenvalues()">Eigenvalues</button>
+                    </div>
+                    <div class="matrix-grid" id="matrixInput"></div>
+                    <div class="formula-result" id="matrixResult"><span class="label">Result</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: STATISTICS ============ -->
+        <div class="tab-content hidden" id="tab-statistics">
+            <div class="content">
+                <div class="panel wide">
+                    <h3>📊 Descriptive Statistics</h3>
+                    <label style="font-size:0.75rem;color:var(--text2);">Enter numbers (comma-separated):</label>
+                    <input type="text" id="statData" value="12,15,18,22,25,30,35,40,100" style="margin-bottom:8px;">
+                    <button class="btn-accent" onclick="statistics.compute()" style="width:100%;">Compute All Statistics</button>
+                    <div class="formula-result" id="statResult" style="font-size:0.85rem;line-height:1.6;"><span class="label">Statistics</span></div>
+                </div>
+                <div class="panel">
+                    <h3>🎲 Probability Distributions</h3>
+                    <select id="distType" onchange="statistics.updateDist()">
+                        <option value="binomial">Binomial</option>
+                        <option value="poisson">Poisson</option>
+                        <option value="normal">Normal PDF</option>
+                    </select>
+                    <div id="distParams" style="margin-top:8px;"></div>
+                    <button class="btn-accent" onclick="statistics.computeDist()" style="width:100%;margin-top:8px;">Compute</button>
+                    <div class="formula-result" id="distResult"><span class="label">Probability</span></div>
+                </div>
+                <div class="panel">
+                    <h3>📈 Regression (Linear: y = mx + b)</h3>
+                    <label style="font-size:0.75rem;color:var(--text2);">X values (comma):</label>
+                    <input type="text" id="regX" value="1,2,3,4,5" style="margin-bottom:4px;">
+                    <label style="font-size:0.75rem;color:var(--text2);">Y values (comma):</label>
+                    <input type="text" id="regY" value="2,4,5,7,8" style="margin-bottom:8px;">
+                    <button class="btn-accent" onclick="statistics.regression()" style="width:100%;">Compute Regression</button>
+                    <div class="formula-result" id="regResult"><span class="label">Linear Regression</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: PHYSICS ============ -->
+        <div class="tab-content hidden" id="tab-physics">
+            <div class="content">
+                <div class="panel">
+                    <h3>⚡ Kinematics (SUVAT)</h3>
+                    <select id="suvatUnknown" onchange="physics.updateSuvat()">
+                        <option value="s">Find Displacement (s)</option>
+                        <option value="u">Find Initial Velocity (u)</option>
+                        <option value="v">Find Final Velocity (v)</option>
+                        <option value="a">Find Acceleration (a)</option>
+                        <option value="t">Find Time (t)</option>
+                    </select>
+                    <div id="suvatInputs" style="margin-top:8px;"></div>
+                    <button class="btn-accent" onclick="physics.suvat()" style="width:100%;margin-top:8px;">Calculate</button>
+                    <div class="formula-result" id="suvatResult"><span class="label">Result</span></div>
+                </div>
+                <div class="panel">
+                    <h3>🌌 Newton's Law of Gravity</h3>
+                    <div class="row"><input type="number" id="gravM1" value="5.97e24" step="any" placeholder="Mass 1 (kg)"><input type="number" id="gravM2" value="7.35e22" step="any" placeholder="Mass 2 (kg)"></div>
+                    <div class="row" style="margin-top:4px;"><input type="number" id="gravR" value="3.84e8" step="any" placeholder="Distance (m)"></div>
+                    <button class="btn-accent" onclick="physics.gravity()" style="width:100%;margin-top:8px;">Compute Force</button>
+                    <div class="formula-result" id="gravResult"><span class="label">Gravitational Force (N)</span></div>
+                </div>
+                <div class="panel">
+                    <h3>⚛️ E = mc² & Relativity</h3>
+                    <div class="row"><input type="number" id="relMass" value="1" step="any" placeholder="Mass (kg)"></div>
+                    <button class="btn-accent" onclick="physics.emc2()" style="width:100%;margin-top:8px;">Compute Energy</button>
+                    <div class="formula-result" id="emc2Result"><span class="label">Energy (J)</span></div>
+                    <div class="row" style="margin-top:8px;">
+                        <input type="number" id="relVelocity" value="2.5e8" step="any" placeholder="Velocity (m/s)">
+                        <button class="btn-sci" onclick="physics.relativity()" style="flex:0.5;">γ & Relativistic KE</button>
+                    </div>
+                    <div class="formula-result" id="relResult"><span class="label">Relativistic</span></div>
+                </div>
+                <div class="panel">
+                    <h3>💡 Ohm's Law & Circuits</h3>
+                    <div class="row"><input type="number" id="ohmV" value="12" step="any" placeholder="Voltage (V)"><input type="number" id="ohmR" value="4" step="any" placeholder="Resistance (Ω)"></div>
+                    <button class="btn-accent" onclick="physics.ohmsLaw()" style="width:100%;margin-top:8px;">Compute I, P</button>
+                    <div class="formula-result" id="ohmResult"><span class="label">Current & Power</span></div>
+                </div>
+                <div class="panel wide">
+                    <h3>🌊 Wave Properties</h3>
+                    <div class="row">
+                        <input type="number" id="waveFreq" value="440" step="any" placeholder="Frequency (Hz)">
+                        <input type="number" id="waveSpeed" value="343" step="any" placeholder="Wave Speed (m/s)">
+                        <button class="btn-accent" onclick="physics.wave()" style="flex:0.5;">Compute</button>
+                    </div>
+                    <div class="formula-result" id="waveResult"><span class="label">Wavelength & Period</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: CHEMISTRY ============ -->
+        <div class="tab-content hidden" id="tab-chemistry">
+            <div class="content">
+                <div class="panel wide">
+                    <h3>🧪 Molar Mass Calculator</h3>
+                    <input type="text" id="chemFormula" value="H2SO4" placeholder="Chemical formula (e.g., H2SO4, NaCl, C6H12O6)" style="margin-bottom:8px;">
+                    <button class="btn-accent" onclick="chemistry.molarMass()" style="width:100%;">Compute Molar Mass</button>
+                    <div class="formula-result" id="molarMassResult"><span class="label">Molar Mass (g/mol)</span></div>
+                    <div style="font-size:0.65rem;color:var(--text2);margin-top:6px;">Supported: H,He,Li,Be,B,C,N,O,F,Ne,Na,Mg,Al,Si,P,S,Cl,Ar,K,Ca,Fe,Cu,Zn,Br,Ag,I,Au,Hg,Pb,U + more</div>
+                </div>
+                <div class="panel">
+                    <h3>⚗️ Ideal Gas Law (PV = nRT)</h3>
+                    <select id="gasUnknown" onchange="chemistry.updateGasLaw()">
+                        <option value="P">Find Pressure (P)</option>
+                        <option value="V">Find Volume (V)</option>
+                        <option value="n">Find Moles (n)</option>
+                        <option value="T">Find Temperature (T)</option>
+                    </select>
+                    <div id="gasInputs" style="margin-top:8px;"></div>
+                    <button class="btn-accent" onclick="chemistry.gasLaw()" style="width:100%;margin-top:8px;">Calculate</button>
+                    <div class="formula-result" id="gasResult"><span class="label">Ideal Gas Law</span></div>
+                </div>
+                <div class="panel">
+                    <h3>🧫 pH & Concentration</h3>
+                    <div class="row">
+                        <input type="number" id="phHplus" value="0.001" step="any" placeholder="[H⁺] mol/L">
+                        <button class="btn-accent" onclick="chemistry.pH()" style="flex:0.5;">pH from [H⁺]</button>
+                    </div>
+                    <div class="row" style="margin-top:4px;">
+                        <input type="number" id="phValue" value="7" step="any" placeholder="pH value">
+                        <button class="btn-sci" onclick="chemistry.pHtoConc()" style="flex:0.5;">[H⁺] from pH</button>
+                    </div>
+                    <div class="formula-result" id="phResult"><span class="label">pH / Concentration</span></div>
+                </div>
+                <div class="panel">
+                    <h3>🔬 Dilution (C₁V₁ = C₂V₂)</h3>
+                    <div class="row"><input type="number" id="dilC1" value="1" step="any" placeholder="C₁ (M)"><input type="number" id="dilV1" value="100" step="any" placeholder="V₁ (mL)"></div>
+                    <div class="row" style="margin-top:4px;"><input type="number" id="dilC2" value="0.1" step="any" placeholder="C₂ (M)"><input type="number" id="dilV2" value="" step="any" placeholder="V₂ (mL) unknown" readonly></div>
+                    <button class="btn-accent" onclick="chemistry.dilution()" style="width:100%;margin-top:8px;">Compute V₂</button>
+                    <div class="formula-result" id="dilResult"><span class="label">Dilution Result</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: CONVERTER ============ -->
+        <div class="tab-content hidden" id="tab-converter">
+            <div class="content">
+                <div class="panel wide">
+                    <h3>🔄 Universal Unit Converter</h3>
+                    <div class="row" style="margin-bottom:8px;">
+                        <select id="convCategory" onchange="converter.changeCategory()">
+                            <option value="length">Length</option>
+                            <option value="mass">Mass</option>
+                            <option value="temperature">Temperature</option>
+                            <option value="area">Area</option>
+                            <option value="volume">Volume</option>
+                            <option value="speed">Speed</option>
+                            <option value="energy">Energy</option>
+                            <option value="pressure">Pressure</option>
+                            <option value="power">Power</option>
+                            <option value="time">Time</option>
+                            <option value="data">Digital Data</option>
+                            <option value="angle">Angle</option>
+                            <option value="force">Force</option>
+                            <option value="density">Density</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <input type="number" id="convInput" value="1" step="any" placeholder="Value" oninput="converter.convert()">
+                        <select id="convFrom" onchange="converter.convert()"></select>
+                        <span style="font-size:1.4rem;text-align:center;">→</span>
+                        <select id="convTo" onchange="converter.convert()"></select>
+                        <input type="text" id="convResult" readonly placeholder="Result" style="font-weight:700;color:var(--accent);">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: GEOMETRY ============ -->
+        <div class="tab-content hidden" id="tab-geometry">
+            <div class="content">
+                <div class="panel">
+                    <h3>📏 2D Shapes</h3>
+                    <select id="shape2D" onchange="geometry.update2D()">
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                        <option value="rectangle">Rectangle</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="trapezoid">Trapezoid</option>
+                        <option value="ellipse">Ellipse</option>
+                        <option value="polygon">Regular Polygon</option>
+                    </select>
+                    <div id="shape2DInputs" style="margin-top:8px;"></div>
+                    <button class="btn-accent" onclick="geometry.compute2D()" style="width:100%;margin-top:8px;">Compute</button>
+                    <div class="formula-result" id="shape2DResult"><span class="label">Area & Perimeter</span></div>
+                </div>
+                <div class="panel">
+                    <h3>📦 3D Shapes</h3>
+                    <select id="shape3D" onchange="geometry.update3D()">
+                        <option value="sphere">Sphere</option>
+                        <option value="cube">Cube</option>
+                        <option value="cuboid">Cuboid</option>
+                        <option value="cylinder">Cylinder</option>
+                        <option value="cone">Cone</option>
+                        <option value="pyramid">Square Pyramid</option>
+                        <option value="torus">Torus</option>
+                    </select>
+                    <div id="shape3DInputs" style="margin-top:8px;"></div>
+                    <button class="btn-accent" onclick="geometry.compute3D()" style="width:100%;margin-top:8px;">Compute</button>
+                    <div class="formula-result" id="shape3DResult"><span class="label">Volume & Surface Area</span></div>
+                </div>
+                <div class="panel">
+                    <h3>📐 Trigonometry Solver</h3>
+                    <label style="font-size:0.75rem;color:var(--text2);">Right Triangle (know 2 values):</label>
+                    <div class="row" style="margin-top:4px;">
+                        <input type="number" id="trigA" value="3" step="any" placeholder="Side a">
+                        <input type="number" id="trigB" value="4" step="any" placeholder="Side b">
+                        <input type="number" id="trigC" value="" step="any" placeholder="Side c (hyp)">
+                    </div>
+                    <button class="btn-accent" onclick="geometry.trigSolver()" style="width:100%;margin-top:8px;">Solve Triangle</button>
+                    <div class="formula-result" id="trigResult"><span class="label">Sides & Angles</span></div>
+                </div>
+                <div class="panel">
+                    <h3>🔄 Coordinate Geometry</h3>
+                    <label style="font-size:0.75rem;color:var(--text2);">Point 1: (x₁, y₁)</label>
+                    <div class="row"><input type="number" id="coordX1" value="0" step="any"><input type="number" id="coordY1" value="0" step="any"></div>
+                    <label style="font-size:0.75rem;color:var(--text2);margin-top:6px;">Point 2: (x₂, y₂)</label>
+                    <div class="row"><input type="number" id="coordX2" value="3" step="any"><input type="number" id="coordY2" value="4" step="any"></div>
+                    <button class="btn-accent" onclick="geometry.coordinate()" style="width:100%;margin-top:8px;">Compute</button>
+                    <div class="formula-result" id="coordResult"><span class="label">Distance, Midpoint, Slope</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== GLOBAL ENGINE ====================
+        const engine = {
+            expression: '',
+            memory: 0,
+            history: [],
+            lastResult: null,
+
+            init() {
+                this.loadHistory();
+                this.renderHistory();
+                this.updateDisplay();
+            },
+
+            append(val) { this.expression += val;
+                this.updateDisplay(); },
+            appendFunc(func) { this.expression += func;
+                this.updateDisplay(); },
+
+            backspace() {
+                const patterns = ['sin(', 'cos(', 'tan(', 'log(', 'ln(', 'asin(', 'acos(', 'atan(', 'sqrt(', 'cbrt(',
+                    'abs(', 'round(', 'sinh(', 'cosh(', 'tanh(', '**(-1)', '**2', '**3', '/180*PI', '*180/PI'
+                ];
+                for (const p of patterns) { if (this.expression.endsWith(p)) { this.expression = this.expression.slice(
+                            0, -p.length);
+                        this.updateDisplay(); return; } }
+                this.expression = this.expression.slice(0, -1);
+                this.updateDisplay();
+            },
+
+            clearAll() { this.expression = '';
+                this.lastResult = null;
+                document.getElementById('calcSecondary').textContent = '';
+                this.updateDisplay(); },
+
+            evaluate() {
+                if (!this.expression.trim()) { document.getElementById('calcResult').textContent = '0'; return; }
+                try {
+                    let expr = this.expression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+                    expr = expr.replace(/\bPI\b/g, 'Math.PI');
+                    expr = expr.replace(/(?<![a-zA-Z0-9_])E(?![a-zA-Z0-9_+\-])/g, 'Math.E');
+                    expr = expr.replace(/([\d.]+|\))\s*!/g, (_, n) => `factorial(${n})`);
+                    const funcMap = { 'sin': 'Math.sin', 'cos': 'Math.cos', 'tan': 'Math.tan', 'asin': 'Math.asin',
+                        'acos': 'Math.acos', 'atan': 'Math.atan', 'sinh': 'Math.sinh', 'cosh': 'Math.cosh',
+                        'tanh': 'Math.tanh', 'log': 'Math.log10', 'ln': 'Math.log', 'sqrt': 'Math.sqrt',
+                        'cbrt': 'Math.cbrt', 'abs': 'Math.abs', 'round': 'Math.round' };
+                    for (const [k, v] of Object.entries(funcMap)) { expr = expr.replace(new RegExp('\\b' + k + '\\(', 'g'),
+                            v + '('); }
+                    expr = expr.replace(/\bpow\(/g, 'Math.pow(');
+                    const openP = (expr.match(/\(/g) || []).length;
+                    const closeP = (expr.match(/\)/g) || []).length;
+                    if (openP > closeP) expr += ')'.repeat(openP - closeP);
+                    expr = expr.replace(/([\d.]+)%/g, '($1/100)');
+                    const factorial = n => { if (!Number.isInteger(n) || n < 0) return NaN; if (n === 0 || n === 1)
+                            return 1; if (n > 170) return Infinity; let r = 1; for (let i = 2; i <= n; i++) r *= i;
+                        return r; };
+                    const result = eval(
+                        `(() => { const factorial = ${factorial.toString()}; return ${expr}; })()`);
+                    this.lastResult = result;
+                    const formatted = this.formatNum(result);
+                    document.getElementById('calcResult').textContent = formatted;
+                    document.getElementById('calcResult').classList.remove('error');
+                    document.getElementById('calcSecondary').textContent = '';
+                    this.history.unshift(`${this.expression} = ${formatted}`);
+                    if (this.history.length > 100) this.history.pop();
+                    this.saveHistory();
+                    this.renderHistory();
+                    this.expression = formatted;
+                } catch (e) {
+                    document.getElementById('calcResult').textContent = 'Error';
+                    document.getElementById('calcResult').classList.add('error');
+                    document.getElementById('calcSecondary').textContent = e.message;
+                }
+            },
+
+            formatNum(num) {
+                if (num === undefined || num === null || isNaN(num)) return 'Error';
+                if (!isFinite(num)) return num > 0 ? '∞' : '-∞';
+                if (Number.isInteger(num) && Math.abs(num) < 1e15) return num.toString();
+                if (Math.abs(num) < 1e-10 && num !== 0) return num.toExponential(8);
+                if (Math.abs(num) >= 1e15) return num.toExponential(8);
+                return parseFloat(num.toPrecision(12)).toString();
+            },
+
+            updateDisplay() {
+                const d = this.expression.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−').replace(/PI/g, 'π');
+                document.getElementById('calcExpr').textContent = d || '\u00A0';
+                document.getElementById('calcResult').textContent = this.expression ? '' : (this.lastResult !== null ?
+                    this.formatNum(this.lastResult) : '0');
+                document.getElementById('calcSecondary').textContent = '';
+            },
+
+            memoryStore() { this.memory = this.lastResult !== null ? this.lastResult : 0; },
+            memoryRecall() { if (this.memory !== 0) { this.expression = this.formatNum(this.memory);
+                    this.updateDisplay(); } },
+            memoryAdd() { if (this.lastResult !== null) this.memory += this.lastResult; },
+            memoryClear() { this.memory = 0; },
+
+            loadHistory() { try { const s = localStorage.getItem('omniCalcHistory'); if (s) this.history = JSON.parse(
+                    s); } catch (e) { this.history = []; } },
+            saveHistory() { try { localStorage.setItem('omniCalcHistory', JSON.stringify(this.history.slice(0,
+                    100))); } catch (e) {} },
+            clearHistory() { this.history = [];
+                this.saveHistory();
+                this.renderHistory(); },
+            renderHistory() {
+                const c = document.getElementById('historyList');
+                if (this.history.length === 0) { c.innerHTML = '<div style="color:#444;">No history</div>'; return; }
+                c.innerHTML = this.history.map(e => {
+                    const [expr, res] = e.split(' = ');
+                    return `<div onclick="engine.useHistory('${this.escapeHtml(res||'')}')">
+              <span style="color:#555;">${this.escapeHtml(expr||'').slice(0,35)}</span> = <span style="color:var(--accent);">${this.escapeHtml(res||'').slice(0,20)}</span></div>`;
+                }).join('');
+            },
+            escapeHtml(s) { const d = document.createElement('div');
+                d.textContent = s; return d.innerHTML; },
+            useHistory(r) { this.expression = r;
+                this.updateDisplay(); },
+        };
+
+        // ==================== ALGEBRA MODULE ====================
+        const algebra = {
+            solveQuadratic() {
+                const a = parseFloat(document.getElementById('quadA').value) || 0;
+                const b = parseFloat(document.getElementById('quadB').value) || 0;
+                const c = parseFloat(document.getElementById('quadC').value) || 0;
+                const disc = b * b - 4 * a * c;
+                let result;
+                if (a === 0) { result = `Not quadratic (a=0). Linear solution: x = ${engine.formatNum(-c/b)}`; } else if (
+                    disc > 0) {
+                    const x1 = (-b + Math.sqrt(disc)) / (2 * a);
+                    const x2 = (-b - Math.sqrt(disc)) / (2 * a);
+                    result = `x₁ = ${engine.formatNum(x1)}\nx₂ = ${engine.formatNum(x2)}\nDiscriminant = ${engine.formatNum(disc)}`;
+                } else if (disc === 0) { result =
+                        `Double root: x = ${engine.formatNum(-b/(2*a))}\nDiscriminant = 0`; } else {
+                    const real = -b / (2 * a);
+                    const imag = Math.sqrt(-disc) / (2 * a);
+                    result =
+                        `Complex roots:\nx₁ = ${engine.formatNum(real)} + ${engine.formatNum(imag)}i\nx₂ = ${engine.formatNum(real)} − ${engine.formatNum(imag)}i`;
+                }
+                document.getElementById('quadResult').innerHTML = `<span class="label">Solution</span>${result.replace(/\n/g,'<br>')}`;
+            },
+
+            evalPolynomial() {
+                const expr = document.getElementById('polyExpr').value;
+                const x = parseFloat(document.getElementById('polyX').value) || 0;
+                try {
+                    let e = expr.replace(/\^/g, '**').replace(/x/g, `(${x})`);
+                    e = e.replace(/(\d)\(/g, '$1*(');
+                    e = e.replace(/\)\(/g, ')*(');
+                    e = e.replace(/\)(\d)/g, ')*$1');
+                    e = e.replace(/(\d)x/g, '$1*x');
+                    const result = eval(`(() => { return ${e}; })()`);
+                    document.getElementById('polyResult').innerHTML =
+                        `<span class="label">f(${x}) =</span> ${engine.formatNum(result)}`;
+                } catch (err) {
+                    document.getElementById('polyResult').innerHTML =
+                        `<span class="label">Error</span> Invalid expression. Use * for multiplication (e.g., 3*x**2)`;
+                }
+            },
+
+            solveSystem2() {
+                const a1 = parseFloat(document.getElementById('sysA1').value) || 0;
+                const b1 = parseFloat(document.getElementById('sysB1').value) || 0;
+                const c1 = parseFloat(document.getElementById('sysC1').value) || 0;
+                const a2 = parseFloat(document.getElementById('sysA2').value) || 0;
+                const b2 = parseFloat(document.getElementById('sysB2').value) || 0;
+                const c2 = parseFloat(document.getElementById('sysC2').value) || 0;
+                const det = a1 * b2 - a2 * b1;
+                if (Math.abs(det) < 1e-10) {
+                    document.getElementById('sys2Result').innerHTML =
+                        '<span class="label">Solution</span>No unique solution (determinant = 0)';
+                } else {
+                    const x = (c1 * b2 - c2 * b1) / det;
+                    const y = (a1 * c2 - a2 * c1) / det;
+                    document.getElementById('sys2Result').innerHTML =
+                        `<span class="label">Solution</span>x = ${engine.formatNum(x)}<br>y = ${engine.formatNum(y)}`;
+                }
+            },
+
+            gcdLcm() {
+                const a = Math.abs(parseInt(document.getElementById('gcdA').value) || 0);
+                const b = Math.abs(parseInt(document.getElementById('gcdB').value) || 0);
+                const gcd = (x, y) => { while (y) { [x, y] = [y, x % y]; } return x; };
+                const g = gcd(a, b);
+                const l = (a * b) / g;
+                document.getElementById('gcdResult').innerHTML =
+                    `<span class="label">GCD & LCM</span>GCD(${a},${b}) = ${g}<br>LCM(${a},${b}) = ${l}`;
+            },
+        };
+
+        // ==================== CALCULUS MODULE ====================
+        const calculus = {
+            safeEval(expr, xVal) {
+                let e = expr.replace(/\^/g, '**').replace(/x/g, `(${xVal})`);
+                e = e.replace(/(\d)\(/g, '$1*(').replace(/\)\(/g, ')*(').replace(/\)(\d)/g, ')*$1').replace(/(\d)x/g,
+                    '$1*x');
+                e = e.replace(/\bexp\(/g, 'Math.exp(').replace(/\bsin\(/g, 'Math.sin(').replace(/\bcos\(/g, 'Math.cos(')
+                    .replace(/\btan\(/g, 'Math.tan(').replace(/\blog\(/g, 'Math.log(').replace(/\bsqrt\(/g, 'Math.sqrt(');
+                return eval(`(() => { return ${e}; })()`);
+            },
+
+            derivative() {
+                const func = document.getElementById('derivFunc').value;
+                const x = parseFloat(document.getElementById('derivX').value) || 0;
+                const h = 1e-7;
+                try {
+                    const f1 = this.safeEval(func, x + h);
+                    const f2 = this.safeEval(func, x - h);
+                    const deriv = (f1 - f2) / (2 * h);
+                    document.getElementById('derivResult').innerHTML =
+                        `<span class="label">f'(${x}) ≈</span> ${engine.formatNum(deriv)}`;
+                } catch (e) {
+                    document.getElementById('derivResult').innerHTML =
+                        '<span class="label">Error</span> Invalid function';
+                }
+            },
+
+            integral() {
+                const func = document.getElementById('integFunc').value;
+                const a = parseFloat(document.getElementById('integA').value) || 0;
+                const b = parseFloat(document.getElementById('integB').value) || 0;
+                const n = 1000;
+                const h = (b - a) / n;
+                try {
+                    let sum = this.safeEval(func, a) + this.safeEval(func, b);
+                    for (let i = 1; i < n; i++) {
+                        const x = a + i * h;
+                        sum += (i % 2 === 0 ? 2 : 4) * this.safeEval(func, x);
+                    }
+                    const result = (h / 3) * sum;
+                    document.getElementById('integResult').innerHTML =
+                        `<span class="label">∫ f(x) dx from ${a} to ${b} ≈</span> ${engine.formatNum(result)}`;
+                } catch (e) {
+                    document.getElementById('integResult').innerHTML =
+                        '<span class="label">Error</span> Invalid function';
+                }
+            },
+
+            limit() {
+                const func = document.getElementById('limitFunc').value;
+                const x0 = parseFloat(document.getElementById('limitX').value) || 0;
+                const h = 1e-7;
+                try {
+                    const right = this.safeEval(func, x0 + h);
+                    const left = this.safeEval(func, x0 - h);
+                    const avg = (right + left) / 2;
+                    document.getElementById('limitResult').innerHTML =
+                        `<span class="label">Limit x→${x0}</span>Left: ${engine.formatNum(left)}<br>Right: ${engine.formatNum(right)}<br>Average: ${engine.formatNum(avg)}`;
+                } catch (e) {
+                    document.getElementById('limitResult').innerHTML =
+                        '<span class="label">Error</span> Invalid function or limit does not exist';
+                }
+            },
+
+            taylor() {
+                const func = document.getElementById('taylorFunc').value;
+                const x0 = parseFloat(document.getElementById('taylorX0').value) || 0;
+                const n = parseInt(document.getElementById('taylorN').value) || 5;
+                const xEval = parseFloat(document.getElementById('taylorEval').value) || 0;
+                const h = 1e-5;
+                try {
+                    const coeffs = [];
+                    for (let i = 0; i < n; i++) {
+                        const deriv = (x) => {
+                            if (i === 0) return this.safeEval(func, x);
+                            let sum = 0;
+                            const h2 = h / Math.pow(2, i);
+                            for (let k = 0; k <= i; k++) {
+                                const binom = this.binomial(i, k);
+                                const sign = (i - k) % 2 === 0 ? 1 : -1;
+                                sum += sign * binom * this.safeEval(func, x + k * h2);
+                            }
+                            return sum / Math.pow(h2, i);
+                        };
+                        coeffs.push(deriv(x0) / this.factorial(i));
+                    }
+                    let approx = 0;
+                    for (let i = 0; i < n; i++) {
+                        approx += coeffs[i] * Math.pow(xEval - x0, i);
+                    }
+                    const terms = coeffs.map((c, i) => `${engine.formatNum(c)}·(x-${x0})^${i}`).join(' + ');
+                    document.getElementById('taylorResult').innerHTML =
+                        `<span class="label">Taylor @ x₀=${x0}, ${n} terms</span>P(x) ≈ ${terms}<br>P(${xEval}) ≈ ${engine.formatNum(approx)}`;
+                } catch (e) {
+                    document.getElementById('taylorResult').innerHTML =
+                        '<span class="label">Error</span> Invalid function';
+                }
+            },
+
+            factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; },
+            binomial(n, k) { return this.factorial(n) / (this.factorial(k) * this.factorial(n - k)); },
+        };
+
+        // ==================== MATRIX MODULE ====================
+        const matrix = {
+            size: 3,
+            setupMatrix() {
+                this.size = parseInt(document.getElementById('matrixSize').value);
+                const container = document.getElementById('matrixInput');
+                container.style.gridTemplateColumns = `repeat(${this.size}, 1fr)`;
+                let html = '';
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        html +=
+                            `<input type="number" id="mat_${i}_${j}" value="${i===j?1:0}" step="any" style="text-align:center;">`;
+                    }
+                }
+                container.innerHTML = html;
+                document.getElementById('matrixResult').innerHTML = '<span class="label">Result</span>';
+            },
+
+            getMatrix() {
+                const m = [];
+                for (let i = 0; i < this.size; i++) {
+                    m[i] = [];
+                    for (let j = 0; j < this.size; j++) {
+                        m[i][j] = parseFloat(document.getElementById(`mat_${i}_${j}`).value) || 0;
+                    }
+                }
+                return m;
+            },
+
+            determinant() {
+                const m = this.getMatrix();
+                const det = this.calcDet(m);
+                document.getElementById('matrixResult').innerHTML =
+                    `<span class="label">Determinant</span> det = ${engine.formatNum(det)}`;
+            },
+
+            calcDet(m) {
+                const n = m.length;
+                if (n === 1) return m[0][0];
+                if (n === 2) return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+                let det = 0;
+                for (let j = 0; j < n; j++) {
+                    const sub = [];
+                    for (let i = 1; i < n; i++) {
+                        sub.push(m[i].filter((_, idx) => idx !== j));
+                    }
+                    det += (j % 2 === 0 ? 1 : -1) * m[0][j] * this.calcDet(sub);
+                }
+                return det;
+            },
+
+            inverse() {
+                const m = this.getMatrix();
+                const det = this.calcDet(m);
+                if (Math.abs(det) < 1e-12) {
+                    document.getElementById('matrixResult').innerHTML =
+                        '<span class="label">Inverse</span> Matrix is singular (det = 0)';
+                    return;
+                }
+                const n = m.length;
+                const inv = [];
+                for (let i = 0; i < n; i++) {
+                    inv[i] = [];
+                    for (let j = 0; j < n; j++) {
+                        const sub = [];
+                        for (let r = 0; r < n; r++) {
+                            if (r === i) continue;
+                            const row = [];
+                            for (let c = 0; c < n; c++) {
+                                if (c === j) continue;
+                                row.push(m[r][c]);
+                            }
+                            sub.push(row);
+                        }
+                        inv[i][j] = ((i + j) % 2 === 0 ? 1 : -1) * this.calcDet(sub) / det;
+                    }
+                }
+                // Transpose
+                const result = [];
+                for (let i = 0; i < n; i++) {
+                    result[i] = [];
+                    for (let j = 0; j < n; j++) {
+                        result[i][j] = engine.formatNum(inv[j][i]);
+                    }
+                }
+                document.getElementById('matrixResult').innerHTML =
+                    `<span class="label">Inverse (det=${engine.formatNum(det)})</span>` +
+                    result.map(r => '[' + r.join(', ') + ']').join('<br>');
+            },
+
+            transpose() {
+                const m = this.getMatrix();
+                const t = [];
+                for (let i = 0; i < m.length; i++) {
+                    t[i] = [];
+                    for (let j = 0; j < m.length; j++) {
+                        t[i][j] = engine.formatNum(m[j][i]);
+                    }
+                }
+                document.getElementById('matrixResult').innerHTML =
+                    '<span class="label">Transpose</span>' + t.map(r => '[' + r.join(', ') + ']').join('<br>');
+            },
+
+            eigenvalues() {
+                const m = this.getMatrix();
+                if (m.length === 2) {
+                    const a = m[0][0],
+                        b = m[0][1],
+                        c = m[1][0],
+                        d = m[1][1];
+                    const trace = a + d;
+                    const det = a * d - b * c;
+                    const disc = trace * trace - 4 * det;
+                    if (disc >= 0) {
+                        const l1 = (trace + Math.sqrt(disc)) / 2;
+                        const l2 = (trace - Math.sqrt(disc)) / 2;
+                        document.getElementById('matrixResult').innerHTML =
+                            `<span class="label">Eigenvalues</span>λ₁ = ${engine.formatNum(l1)}<br>λ₂ = ${engine.formatNum(l2)}`;
+                    } else {
+                        const real = trace / 2;
+                        const imag = Math.sqrt(-disc) / 2;
+                        document.getElementById('matrixResult').innerHTML =
+                            `<span class="label">Eigenvalues</span>λ₁ = ${engine.formatNum(real)} + ${engine.formatNum(imag)}i<br>λ₂ = ${engine.formatNum(real)} − ${engine.formatNum(imag)}i`;
+                    }
+                } else if (m.length === 3) {
+                    // Power iteration approximation for dominant eigenvalue
+                    let v = [1, 1, 1];
+                    for (let iter = 0; iter < 50; iter++) {
+                        const w = [0, 0, 0];
+                        for (let i = 0; i < 3; i++)
+                            for (let j = 0; j < 3; j++) w[i] += m[i][j] * v[j];
+                        const norm = Math.sqrt(w.reduce((s, x) => s + x * x, 0));
+                        v = w.map(x => x / norm);
+                    }
+                    const av = [0, 0, 0];
+                    for (let i = 0; i < 3; i++)
+                        for (let j = 0; j < 3; j++) av[i] += m[i][j] * v[j];
+                    const lambda = av.reduce((s, x, i) => s + x * v[i], 0) / v.reduce((s, x) => s + x * x, 0);
+                    document.getElementById('matrixResult').innerHTML =
+                        `<span class="label">Dominant Eigenvalue (approx)</span>λ_max ≈ ${engine.formatNum(lambda)}`;
+                }
+            },
+        };
+        matrix.setupMatrix();
+
+        // ==================== STATISTICS MODULE ====================
+        const statistics = {
+            compute() {
+                const raw = document.getElementById('statData').value;
+                const data = raw.split(',').map(s => parseFloat(s.trim())).filter(x => !isNaN(x));
+                if (data.length === 0) { document.getElementById('statResult').innerHTML =
+                        '<span class="label">Error</span> No valid numbers'; return; }
+                data.sort((a, b) => a - b);
+                const n = data.length;
+                const sum = data.reduce((s, x) => s + x, 0);
+                const mean = sum / n;
+                const median = n % 2 === 0 ? (data[n / 2 - 1] + data[n / 2]) / 2 : data[Math.floor(n / 2)];
+                const variance = data.reduce((s, x) => s + (x - mean) ** 2, 0) / n;
+                const stdDev = Math.sqrt(variance);
+                const sampleVar = data.reduce((s, x) => s + (x - mean) ** 2, 0) / (n - 1);
+                const sampleStd = Math.sqrt(sampleVar);
+                const min = data[0],
+                    max = data[n - 1],
+                    range = max - min;
+                const q1 = data[Math.floor(n * 0.25)];
+                const q3 = data[Math.floor(n * 0.75)];
+                const iqr = q3 - q1;
+                const skewness = data.reduce((s, x) => s + ((x - mean) / stdDev) ** 3, 0) / n;
+                document.getElementById('statResult').innerHTML = `<span class="label">Statistics (n=${n})</span>
+            Mean: ${engine.formatNum(mean)} | Median: ${engine.formatNum(median)}<br>
+            Std Dev (pop): ${engine.formatNum(stdDev)} | (sample): ${engine.formatNum(sampleStd)}<br>
+            Variance: ${engine.formatNum(variance)} | Range: ${engine.formatNum(range)}<br>
+            Min: ${engine.formatNum(min)} | Max: ${engine.formatNum(max)}<br>
+            Q1: ${engine.formatNum(q1)} | Q3: ${engine.formatNum(q3)} | IQR: ${engine.formatNum(iqr)}<br>
+            Skewness: ${engine.formatNum(skewness)} | Sum: ${engine.formatNum(sum)}`;
+            },
+
+            updateDist() {
+                const type = document.getElementById('distType').value;
+                let html = '';
+                if (type === 'binomial') html =
+                    '<div class="row"><input type="number" id="binomN" value="10" step="1" placeholder="n"><input type="number" id="binomP" value="0.5" step="any" placeholder="p"><input type="number" id="binomK" value="5" step="1" placeholder="k"></div>';
+                else if (type === 'poisson') html =
+                    '<div class="row"><input type="number" id="poisLambda" value="3" step="any" placeholder="λ"><input type="number" id="poisK" value="2" step="1" placeholder="k"></div>';
+                else if (type === 'normal') html =
+                    '<div class="row"><input type="number" id="normX" value="0" step="any" placeholder="x"><input type="number" id="normMu" value="0" step="any" placeholder="μ"><input type="number" id="normSigma" value="1" step="any" placeholder="σ"></div>';
+                document.getElementById('distParams').innerHTML = html;
+            },
+
+            factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; },
+            binomial(n, k) { return this.factorial(n) / (this.factorial(k) * this.factorial(n - k)); },
+
+            computeDist() {
+                const type = document.getElementById('distType').value;
+                try {
+                    if (type === 'binomial') {
+                        const n = parseInt(document.getElementById('binomN').value) || 0;
+                        const p = parseFloat(document.getElementById('binomP').value) || 0;
+                        const k = parseInt(document.getElementById('binomK').value) || 0;
+                        const prob = this.binomial(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+                        document.getElementById('distResult').innerHTML =
+                            `<span class="label">P(X=${k})</span> = ${engine.formatNum(prob)}`;
+                    } else if (type === 'poisson') {
+                        const lambda = parseFloat(document.getElementById('poisLambda').value) || 0;
+                        const k = parseInt(document.getElementById('poisK').value) || 0;
+                        const prob = Math.pow(lambda, k) * Math.exp(-lambda) / this.factorial(k);
+                        document.getElementById('distResult').innerHTML =
+                            `<span class="label">P(X=${k})</span> = ${engine.formatNum(prob)}`;
+                    } else if (type === 'normal') {
+                        const x = parseFloat(document.getElementById('normX').value) || 0;
+                        const mu = parseFloat(document.getElementById('normMu').value) || 0;
+                        const sigma = parseFloat(document.getElementById('normSigma').value) || 1;
+                        const pdf = (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mu) /
+                            sigma, 2));
+                        document.getElementById('distResult').innerHTML =
+                            `<span class="label">PDF at x=${x}</span> = ${engine.formatNum(pdf)}`;
+                    }
+                } catch (e) {
+                    document.getElementById('distResult').innerHTML =
+                    '<span class="label">Error</span> Invalid parameters';}
+            },
+
+            regression() {
+                const xRaw = document.getElementById('regX').value.split(',').map(s => parseFloat(s.trim())).filter(x =>
+                    !isNaN(x));
+                const yRaw = document.getElementById('regY').value.split(',').map(s => parseFloat(s.trim())).filter(x =>
+                    !isNaN(x));
+                if (xRaw.length !== yRaw.length || xRaw.length < 2) {
+                    document.getElementById('regResult').innerHTML =
+                        '<span class="label">Error</span> Need equal number of X and Y values (min 2)';
+                    return;
+                }
+                const n = xRaw.length;
+                const sumX = xRaw.reduce((s, x) => s + x, 0);
+                const sumY = yRaw.reduce((s, x) => s + x, 0);
+                const sumXY = xRaw.reduce((s, x, i) => s + x * yRaw[i], 0);
+                const sumX2 = xRaw.reduce((s, x) => s + x * x, 0);
+                const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                const b = (sumY - m * sumX) / n;
+                const yMean = sumY / n;
+                const ssTot = yRaw.reduce((s, y) => s + (y - yMean) ** 2, 0);
+                const ssRes = yRaw.reduce((s, y, i) => s + (y - (m * xRaw[i] + b)) ** 2, 0);
+                const r2 = 1 - ssRes / ssTot;
+                document.getElementById('regResult').innerHTML = `<span class="label">Linear Regression</span>
+            y = ${engine.formatNum(m)}x + ${engine.formatNum(b)}<br>
+            R² = ${engine.formatNum(r2)}`;
+            },
+        };
+        statistics.updateDist();
+
+        // ==================== PHYSICS MODULE ====================
+        const physics = {
+            updateSuvat() {
+                const unknown = document.getElementById('suvatUnknown').value;
+                const fields = { s: 'Displacement (m)', u: 'Initial Velocity (m/s)', v: 'Final Velocity (m/s)',
+                    a: 'Acceleration (m/s²)', t: 'Time (s)' };
+                let html = '';
+                for (const [k, v] of Object.entries(fields)) {
+                    if (k !== unknown) html +=
+                        `<input type="number" id="suvat_${k}" step="any" placeholder="${v}" style="margin-bottom:3px;">`;
+                }
+                document.getElementById('suvatInputs').innerHTML = html;
+            },
+
+            suvat() {
+                const unknown = document.getElementById('suvatUnknown').value;
+                const get = (id) => { const el = document.getElementById(`suvat_${id}`); return el ? parseFloat(el
+                        .value) || 0 : null; };
+                const s = unknown === 's' ? null : get('s');
+                const u = unknown === 'u' ? null : get('u');
+                const v = unknown === 'v' ? null : get('v');
+                const a = unknown === 'a' ? null : get('a');
+                const t = unknown === 't' ? null : get('t');
+                let result;
+                try {
+                    if (unknown === 's') result = u * t + 0.5 * a * t * t;
+                    else if (unknown === 'u') result = (s - 0.5 * a * t * t) / t;
+                    else if (unknown === 'v') result = u + a * t;
+                    else if (unknown === 'a') result = (v - u) / t;
+                    else if (unknown === 't') result = (v - u) / a;
+                    document.getElementById('suvatResult').innerHTML =
+                        `<span class="label">${unknown} =</span> ${engine.formatNum(result)}`;
+                } catch (e) {
+                    document.getElementById('suvatResult').innerHTML =
+                    '<span class="label">Error</span> Check inputs';}
+            },
+
+            gravity() {
+                const m1 = parseFloat(document.getElementById('gravM1').value) || 0;
+                const m2 = parseFloat(document.getElementById('gravM2').value) || 0;
+                const r = parseFloat(document.getElementById('gravR').value) || 1;
+                const G = 6.67430e-11;
+                const F = G * m1 * m2 / (r * r);
+                document.getElementById('gravResult').innerHTML =
+                    `<span class="label">F =</span> ${engine.formatNum(F)} N`;
+            },
+
+            emc2() {
+                const m = parseFloat(document.getElementById('relMass').value) || 0;
+                const c = 299792458;
+                const E = m * c * c;
+                document.getElementById('emc2Result').innerHTML =
+                    `<span class="label">E =</span> ${engine.formatNum(E)} J (${engine.formatNum(E/1.602e-13)} MeV)`;
+            },
+
+            relativity() {
+                const v = parseFloat(document.getElementById('relVelocity').value) || 0;
+                const c = 299792458;
+                if (v >= c) { document.getElementById('relResult').innerHTML =
+                        '<span class="label">Error</span> v must be < c'; return; }
+                const gamma = 1 / Math.sqrt(1 - (v * v) / (c * c));
+                const m = parseFloat(document.getElementById('relMass').value) || 1;
+                const ke = (gamma - 1) * m * c * c;
+                document.getElementById('relResult').innerHTML =
+                    `<span class="label">γ =</span> ${engine.formatNum(gamma)}<br>KE = ${engine.formatNum(ke)} J`;
+            },
+
+            ohmsLaw() {
+                const V = parseFloat(document.getElementById('ohmV').value) || 0;
+                const R = parseFloat(document.getElementById('ohmR').value) || 1;
+                const I = V / R;
+                const P = V * I;
+                document.getElementById('ohmResult').innerHTML =
+                    `<span class="label">I =</span> ${engine.formatNum(I)} A<br>P = ${engine.formatNum(P)} W`;
+            },
+
+            wave() {
+                const f = parseFloat(document.getElementById('waveFreq').value) || 0;
+                const v = parseFloat(document.getElementById('waveSpeed').value) || 0;
+                const wavelength = v / f;
+                const period = 1 / f;
+                document.getElementById('waveResult').innerHTML =
+                    `<span class="label">λ =</span> ${engine.formatNum(wavelength)} m<br>T = ${engine.formatNum(period)} s`;
+            },
+        };
+        physics.updateSuvat();
+
+        // ==================== CHEMISTRY MODULE ====================
+        const chemistry = {
+            atomicMasses: {
+                'H': 1.008,
+                'He': 4.0026,
+                'Li': 6.94,
+                'Be': 9.0122,
+                'B': 10.81,
+                'C': 12.011,
+                'N': 14.007,
+                'O': 15.999,
+                'F': 18.998,
+                'Ne': 20.180,
+                'Na': 22.990,
+                'Mg': 24.305,
+                'Al': 26.982,
+                'Si': 28.085,
+                'P': 30.974,
+                'S': 32.06,
+                'Cl': 35.45,
+                'Ar': 39.948,
+                'K': 39.098,
+                'Ca': 40.078,
+                'Fe': 55.845,
+                'Cu': 63.546,
+                'Zn': 65.38,
+                'Br': 79.904,
+                'Ag': 107.87,
+                'I': 126.90,
+                'Au': 196.97,
+                'Hg': 200.59,
+                'Pb': 207.2,
+                'U': 238.03,
+                'Mn': 54.938,
+                'Cr': 51.996,
+                'Co': 58.933,
+                'Ni': 58.693,
+                'Pt': 195.08,
+                'Sn': 118.71,
+                'W': 183.84,
+                'Ti': 47.867,
+                'As': 74.922,
+                'Se': 78.971,
+                'Rb': 85.468,
+                'Sr': 87.62,
+                'Ba': 137.33,
+                'Ra': 226.03,
+                'Cs': 132.91,
+            },
+
+            parseFormula(formula) {
+                const elements = {};
+                const regex = /([A-Z][a-z]?)(\d*)/g;
+                let match;
+                while ((match = regex.exec(formula)) !== null) {
+                    const el = match[1];
+                    const count = match[2] ? parseInt(match[2]) : 1;
+                    if (!this.atomicMasses[el]) return null;
+                    elements[el] = (elements[el] || 0) + count;
+                }
+                return elements;
+            },
+
+            molarMass() {
+                const formula = document.getElementById('chemFormula').value.trim();
+                const elements = this.parseFormula(formula);
+                if (!elements || Object.keys(elements).length === 0) {
+                    document.getElementById('molarMassResult').innerHTML =
+                        '<span class="label">Error</span> Invalid formula. Use format: H2SO4, NaCl, C6H12O6';
+                    return;
+                }
+                let totalMass = 0;
+                let breakdown = [];
+                for (const [el, count] of Object.entries(elements)) {
+                    const mass = this.atomicMasses[el] * count;
+                    totalMass += mass;
+                    breakdown.push(`${el}${count>1?count:''}: ${engine.formatNum(mass)}`);
+                }
+                document.getElementById('molarMassResult').innerHTML =
+                    `<span class="label">Molar Mass</span> ${engine.formatNum(totalMass)} g/mol<br><span style="font-size:0.7rem;">${breakdown.join(' | ')}</span>`;
+            },
+
+            updateGasLaw() {
+                const unknown = document.getElementById('gasUnknown').value;
+                const fields = { P: 'Pressure (atm)', V: 'Volume (L)', n: 'Moles (mol)', T: 'Temperature (K)' };
+                let html = '';
+                for (const [k, v] of Object.entries(fields)) {
+                    if (k !== unknown) html +=
+                        `<input type="number" id="gas_${k}" step="any" placeholder="${v}" style="margin-bottom:3px;">`;
+                }
+                document.getElementById('gasInputs').innerHTML = html;
+            },
+
+            gasLaw() {
+                const unknown = document.getElementById('gasUnknown').value;
+                const get = (id) => { const el = document.getElementById(`gas_${id}`); return el ? parseFloat(el
+                        .value) || 0 : null; };
+                const P = unknown === 'P' ? null : get('P');
+                const V = unknown === 'V' ? null : get('V');
+                const n = unknown === 'n' ? null : get('n');
+                const T = unknown === 'T' ? null : get('T');
+                const R = 0.082057;
+                let result;
+                try {
+                    if (unknown === 'P') result = (n * R * T) / V;
+                    else if (unknown === 'V') result = (n * R * T) / P;
+                    else if (unknown === 'n') result = (P * V) / (R * T);
+                    else if (unknown === 'T') result = (P * V) / (n * R);
+                    document.getElementById('gasResult').innerHTML =
+                        `<span class="label">${unknown} =</span> ${engine.formatNum(result)}`;
+                } catch (e) {
+                    document.getElementById('gasResult').innerHTML =
+                    '<span class="label">Error</span> Check inputs';}
+            },
+
+            pH() {
+                const hPlus = parseFloat(document.getElementById('phHplus').value);
+                if (isNaN(hPlus) || hPlus <= 0) { document.getElementById('phResult').innerHTML =
+                        '<span class="label">Error</span> Invalid concentration'; return; }
+                const pH = -Math.log10(hPlus);
+                document.getElementById('phResult').innerHTML =
+                    `<span class="label">pH =</span> ${engine.formatNum(pH)}`;
+            },
+
+            pHtoConc() {
+                const pH = parseFloat(document.getElementById('phValue').value);
+                if (isNaN(pH)) { document.getElementById('phResult').innerHTML =
+                        '<span class="label">Error</span> Invalid pH'; return; }
+                const hPlus = Math.pow(10, -pH);
+                document.getElementById('phResult').innerHTML =
+                    `<span class="label">[H⁺] =</span> ${engine.formatNum(hPlus)} mol/L`;
+            },
+
+            dilution() {
+                const C1 = parseFloat(document.getElementById('dilC1').value) || 0;
+                const V1 = parseFloat(document.getElementById('dilV1').value) || 0;
+                const C2 = parseFloat(document.getElementById('dilC2').value) || 0;
+                const V2 = (C1 * V1) / C2;
+                document.getElementById('dilV2').value = engine.formatNum(V2);
+                document.getElementById('dilResult').innerHTML =
+                    `<span class="label">V₂ =</span> ${engine.formatNum(V2)} mL`;
+            },
+        };
+        chemistry.updateGasLaw();
+
+        // ==================== CONVERTER MODULE ====================
+        const converter = {
+            categories: {
+                length: { base: 'Meter', units: ['Meter', 'Kilometer', 'Centimeter', 'Millimeter', 'Micrometer',
+                        'Nanometer', 'Mile', 'Yard', 'Foot', 'Inch', 'Nautical Mile', 'Light Year',
+                    'Astronomical Unit'], toBase: { 'Meter': 1, 'Kilometer': 1000, 'Centimeter': 0.01,
+                        'Millimeter': 0.001, 'Micrometer': 1e-6, 'Nanometer': 1e-9, 'Mile': 1609.344,
+                        'Yard': 0.9144, 'Foot': 0.3048, 'Inch': 0.0254, 'Nautical Mile': 1852,
+                        'Light Year': 9.461e15, 'Astronomical Unit': 1.496e11 } },
+                mass: { base: 'Kilogram', units: ['Kilogram', 'Gram', 'Milligram', 'Metric Ton', 'Pound', 'Ounce',
+                        'Stone'], toBase: { 'Kilogram': 1, 'Gram': 0.001, 'Milligram': 1e-6,
+                        'Metric Ton': 1000, 'Pound': 0.453592, 'Ounce': 0.0283495, 'Stone': 6.35029 } },
+                temperature: { special: true, units: ['Celsius', 'Fahrenheit', 'Kelvin'], convert: (v, f, t) => { let k;
+                        if (f === 'Celsius') k = v + 273.15;
+                        else if (f === 'Fahrenheit') k = (v + 459.67) * 5 / 9;
+                        else k = v; if (t === 'Celsius') return k - 273.15;
+                        else if (t === 'Fahrenheit') return k * 9 / 5 - 459.67; return k; } },
+                area: { base: 'Square Meter', units: ['Square Meter', 'Square Kilometer', 'Hectare', 'Acre',
+                        'Square Foot', 'Square Inch'
+                    ], toBase: { 'Square Meter': 1, 'Square Kilometer': 1e6, 'Hectare': 10000, 'Acre': 4046.856,
+                        'Square Foot': 0.092903, 'Square Inch': 0.00064516 } },
+                volume: { base: 'Cubic Meter', units: ['Cubic Meter', 'Liter', 'Milliliter', 'Gallon (US)',
+                        'Quart (US)', 'Cubic Foot'
+                    ], toBase: { 'Cubic Meter': 1, 'Liter': 0.001, 'Milliliter': 1e-6, 'Gallon (US)': 0.00378541,
+                        'Quart (US)': 0.000946353, 'Cubic Foot': 0.0283168 } },
+                speed: { base: 'm/s', units: ['m/s', 'km/h', 'mph', 'Knot', 'Mach'], toBase: { 'm/s': 1,
+                        'km/h': 0.277778, 'mph': 0.44704, 'Knot': 0.514444, 'Mach': 343 } },
+                energy: { base: 'Joule', units: ['Joule', 'Kilojoule', 'Calorie', 'kcal', 'eV', 'kWh',
+                    'BTU'], toBase: { 'Joule': 1, 'Kilojoule': 1000, 'Calorie': 4.184, 'kcal': 4184,
+                        'eV': 1.602e-19, 'kWh': 3.6e6, 'BTU': 1055.06 } },
+                pressure: { base: 'Pascal', units: ['Pascal', 'kPa', 'Bar', 'atm', 'mmHg', 'PSI'],
+                    toBase: { 'Pascal': 1, 'kPa': 1000, 'Bar': 1e5, 'atm': 101325, 'mmHg': 133.322,
+                    'PSI': 6894.76 } },
+                power: { base: 'Watt', units: ['Watt', 'Kilowatt', 'Horsepower', 'BTU/h'],
+                toBase: { 'Watt': 1, 'Kilowatt': 1000, 'Horsepower': 745.7, 'BTU/h': 0.293071 } },
+                time: { base: 'Second', units: ['Second', 'Minute', 'Hour', 'Day', 'Week', 'Year'],
+                    toBase: { 'Second': 1, 'Minute': 60, 'Hour': 3600, 'Day': 86400, 'Week': 604800,
+                    'Year': 31557600 } },
+                data: { base: 'Byte', units: ['Byte', 'Kilobyte', 'Megabyte', 'Gigabyte', 'Terabyte',
+                        'Petabyte'
+                    ], toBase: { 'Byte': 1, 'Kilobyte': 1024, 'Megabyte': 1048576, 'Gigabyte': 1073741824,
+                        'Terabyte': 1099511627776, 'Petabyte': 1125899906842624 } },
+                angle: { base: 'Degree', units: ['Degree', 'Radian', 'Gradian'], toBase: { 'Degree': 1,
+                        'Radian': 57.2958, 'Gradian': 0.9 } },
+                force: { base: 'Newton', units: ['Newton', 'Kilonewton', 'Pound-force', 'Dyne'],
+                    toBase: { 'Newton': 1, 'Kilonewton': 1000, 'Pound-force': 4.44822, 'Dyne': 1e-5 } },
+                density: { base: 'kg/m³', units: ['kg/m³', 'g/cm³', 'g/mL', 'lb/ft³'],
+                toBase: { 'kg/m³': 1, 'g/cm³': 1000, 'g/mL': 1000, 'lb/ft³': 16.0185 } },
+            },
+            currentCategory: 'length',
+
+            init() { this.populateUnits();
+                this.convert(); },
+            changeCategory() {
+                this.currentCategory = document.getElementById('convCategory').value;
+                this.populateUnits();
+                this.convert();
+            },
+            populateUnits() {
+                const cat = this.categories[this.currentCategory];
+                const from = document.getElementById('convFrom');
+                const to = document.getElementById('convTo');
+                from.innerHTML = cat.units.map(u => `<option>${u}</option>`).join('');
+                to.innerHTML = cat.units.map((u, i) => `<option ${i===1?'selected':''}>${u}</option>`).join('');
+            },
+            convert() {
+                const value = parseFloat(document.getElementById('convInput').value);
+                const from = document.getElementById('convFrom').value;
+                const to = document.getElementById('convTo').value;
+                const cat = this.categories[this.currentCategory];
+                if (isNaN(value)) { document.getElementById('convResult').value = ''; return; }
+                let result;
+                if (cat.special && cat.convert) { result = cat.convert(value, from, to); } else { result = value *
+                        cat.toBase[from] / cat.toBase[to]; }
+                document.getElementById('convResult').value = engine.formatNum(result);
+            },
+        };
+
+        // ==================== GEOMETRY MODULE ====================
+        const geometry = {
+            update2D() {
+                const shape = document.getElementById('shape2D').value;
+                const fields = {
+                    circle: 'Radius: <input type="number" id="geo2D_r" value="5" step="any">',
+                    square: 'Side: <input type="number" id="geo2D_a" value="4" step="any">',
+                    rectangle: 'Length: <input type="number" id="geo2D_l" value="6" step="any"> Width: <input type="number" id="geo2D_w" value="3" step="any">',
+                    triangle: 'Base: <input type="number" id="geo2D_b" value="5" step="any"> Height: <input type="number" id="geo2D_h" value="4" step="any"> Side2: <input type="number" id="geo2D_s2" value="4" step="any"> Side3: <input type="number" id="geo2D_s3" value="3" step="any">',
+                    trapezoid: 'Base1: <input type="number" id="geo2D_b1" value="6" step="any"> Base2: <input type="number" id="geo2D_b2" value="4" step="any"> Height: <input type="number" id="geo2D_h" value="3" step="any">',
+                    ellipse: 'Semi-major: <input type="number" id="geo2D_a" value="5" step="any"> Semi-minor: <input type="number" id="geo2D_b" value="3" step="any">',
+                    polygon: 'Sides: <input type="number" id="geo2D_n" value="6" step="1" min="3"> Side length: <input type="number" id="geo2D_s" value="4" step="any">',
+                };
+                document.getElementById('shape2DInputs').innerHTML = fields[shape] || '';
+            },
+
+            compute2D() {
+                const shape = document.getElementById('shape2D').value;
+                const get = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+                let area, perimeter;
+                switch (shape) {
+                    case 'circle':
+                        const r = get('geo2D_r');
+                        area = Math.PI * r * r;
+                        perimeter = 2 * Math.PI * r;
+                        break;
+                    case 'square':
+                        const a = get('geo2D_a');
+                        area = a * a;
+                        perimeter = 4 * a;
+                        break;
+                    case 'rectangle':
+                        const l = get('geo2D_l'),
+                            w = get('geo2D_w');
+                        area = l * w;
+                        perimeter = 2 * (l + w);
+                        break;
+                    case 'triangle':
+                        const b = get('geo2D_b'),
+                            h = get('geo2D_h');
+                        area = 0.5 * b * h;
+                        perimeter = b + get('geo2D_s2') + get('geo2D_s3');
+                        break;
+                    case 'trapezoid':
+                        area = 0.5 * (get('geo2D_b1') + get('geo2D_b2')) * get('geo2D_h');
+                        perimeter = 'N/A (need all sides)';
+                        break;
+                    case 'ellipse':
+                        area = Math.PI * get('geo2D_a') * get('geo2D_b');
+                        perimeter = '≈ ' + engine.formatNum(Math.PI * Math.sqrt(2 * (get('geo2D_a') ** 2 + get(
+                            'geo2D_b') ** 2)));
+                        break;
+                    case 'polygon':
+                        const n = get('geo2D_n'),
+                            s = get('geo2D_s');
+                        area = (n * s * s) / (4 * Math.tan(Math.PI / n));
+                        perimeter = n * s;
+                        break;
+                }
+                document.getElementById('shape2DResult').innerHTML =
+                    `<span class="label">${shape.charAt(0).toUpperCase()+shape.slice(1)}</span>Area: ${engine.formatNum(area)}<br>Perimeter: ${typeof perimeter==='string'?perimeter:engine.formatNum(perimeter)}`;
+            },
+
+            update3D() {
+                const shape = document.getElementById('shape3D').value;
+                const fields = {
+                    sphere: 'Radius: <input type="number" id="geo3D_r" value="5" step="any">',
+                    cube: 'Side: <input type="number" id="geo3D_a" value="4" step="any">',
+                    cuboid: 'Length: <input type="number" id="geo3D_l" value="6" step="any"> Width: <input type="number" id="geo3D_w" value="3" step="any"> Height: <input type="number" id="geo3D_h" value="4" step="any">',
+                    cylinder: 'Radius: <input type="number" id="geo3D_r" value="3" step="any"> Height: <input type="number" id="geo3D_h" value="8" step="any">',
+                    cone: 'Radius: <input type="number" id="geo3D_r" value="3" step="any"> Height: <input type="number" id="geo3D_h" value="6" step="any">',
+                    pyramid: 'Base side: <input type="number" id="geo3D_a" value="4" step="any"> Height: <input type="number" id="geo3D_h" value="9" step="any">',
+                    torus: 'Major radius: <input type="number" id="geo3D_R" value="6" step="any"> Minor radius: <input type="number" id="geo3D_r" value="2" step="any">',
+                };
+                document.getElementById('shape3DInputs').innerHTML = fields[shape] || '';
+            },
+
+            compute3D() {
+                const shape = document.getElementById('shape3D').value;
+                const get = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+                let volume, surfaceArea;
+                switch (shape) {
+                    case 'sphere':
+                        const rs = get('geo3D_r');
+                        volume = (4 / 3) * Math.PI * rs ** 3;
+                        surfaceArea = 4 * Math.PI * rs ** 2;
+                        break;
+                    case 'cube':
+                        const ac = get('geo3D_a');
+                        volume = ac ** 3;
+                        surfaceArea = 6 * ac ** 2;
+                        break;
+                    case 'cuboid':
+                        const l = get('geo3D_l'),
+                            w = get('geo3D_w'),
+                            hc = get('geo3D_h');
+                        volume = l * w * hc;
+                        surfaceArea = 2 * (l * w + l * hc + w * hc);
+                        break;
+                    case 'cylinder':
+                        const rc = get('geo3D_r'),
+                            hcy = get('geo3D_h');
+                        volume = Math.PI * rc ** 2 * hcy;
+                        surfaceArea = 2 * Math.PI * rc * (rc + hcy);
+                        break;
+                    case 'cone':
+                        const rco = get('geo3D_r'),
+                            hco = get('geo3D_h');
+                        const slant = Math.sqrt(rco ** 2 + hco ** 2);
+                        volume = (1 / 3) * Math.PI * rco ** 2 * hco;
+                        surfaceArea = Math.PI * rco * (rco + slant);
+                        break;
+                    case 'pyramid':
+                        const ap = get('geo3D_a'),
+                            hp = get('geo3D_h');
+                        volume = (1 / 3) * ap ** 2 * hp;
+                        const slantP = Math.sqrt((ap / 2) ** 2 + hp ** 2);
+                        surfaceArea = ap ** 2 + 2 * ap * slantP;
+                        break;
+                    case 'torus':
+                        const R = get('geo3D_R'),
+                            rt = get('geo3D_r');
+                        volume = 2 * Math.PI ** 2 * R * rt ** 2;
+                        surfaceArea = 4 * Math.PI ** 2 * R * rt;
+                        break;
+                }
+                document.getElementById('shape3DResult').innerHTML =
+                    `<span class="label">${shape.charAt(0).toUpperCase()+shape.slice(1)}</span>Volume: ${engine.formatNum(volume)}<br>Surface Area: ${engine.formatNum(surfaceArea)}`;
+            },
+
+            trigSolver() {
+                const a = parseFloat(document.getElementById('trigA').value);
+                const b = parseFloat(document.getElementById('trigB').value);
+                const c = parseFloat(document.getElementById('trigC').value);
+                let sideA = a || 0,
+                    sideB = b || 0,
+                    sideC = c || 0;
+                if (!isNaN(a) && !isNaN(b) && isNaN(c)) sideC = Math.sqrt(a * a + b * b);
+                else if (!isNaN(a) && !isNaN(c) && isNaN(b)) sideB = Math.sqrt(Math.max(0, c * c - a * a));
+                else if (!isNaN(b) && !isNaN(c) && isNaN(a)) sideA = Math.sqrt(Math.max(0, c * c - b * b));
+                const angleA = Math.asin(sideA / sideC) * 180 / Math.PI;
+                const angleB = Math.asin(sideB / sideC) * 180 / Math.PI;
+                const angleC = 90;
+                document.getElementById('trigResult').innerHTML = `<span class="label">Right Triangle</span>
+            a: ${engine.formatNum(sideA)} | b: ${engine.formatNum(sideB)} | c: ${engine.formatNum(sideC)}<br>
+            ∠A: ${engine.formatNum(angleA)}° | ∠B: ${engine.formatNum(angleB)}° | ∠C: 90°`;
+            },
+
+            coordinate() {
+                const x1 = parseFloat(document.getElementById('coordX1').value) || 0;
+                const y1 = parseFloat(document.getElementById('coordY1').value) || 0;
+                const x2 = parseFloat(document.getElementById('coordX2').value) || 0;
+                const y2 = parseFloat(document.getElementById('coordY2').value) || 0;
+                const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                const midX = (x1 + x2) / 2,
+                    midY = (y1 + y2) / 2;
+                const slope = x2 !== x1 ? (y2 - y1) / (x2 - x1) : '∞ (vertical)';
+                document.getElementById('coordResult').innerHTML = `<span class="label">Coordinate Geometry</span>
+            Distance: ${engine.formatNum(dist)}<br>
+            Midpoint: (${engine.formatNum(midX)}, ${engine.formatNum(midY)})<br>
+            Slope: ${typeof slope==='string'?slope:engine.formatNum(slope)}`;
+            },
+        };
+        geometry.update2D();
+        geometry.update3D();
+
+        // ==================== TAB SWITCHING ====================
+        document.querySelectorAll('#mainTabs button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#mainTabs button').forEach(b => b.classList.remove(
+                    'active'));
+                btn.classList.add('active');
+                const tabId = 'tab-' + btn.dataset.tab;
+                document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add(
+                    'hidden'));
+                document.getElementById(tabId).classList.remove('hidden');
+                if (btn.dataset.tab === 'converter') converter.init();
+                if (btn.dataset.tab === 'statistics') statistics.updateDist();
+            });
+        });
+
+        // Keyboard support for calculator
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            const activeTab = document.querySelector('#mainTabs button.active');
+            if (activeTab && activeTab.dataset.tab === 'calculator') {
+                const keyMap = { 'Enter': () => engine.evaluate(), 'Backspace': () => engine.backspace(),
+                    'Escape': () => engine.clearAll(), '=': () => engine.evaluate(), '^': () => engine
+                        .append('**'), '%': () => engine.append('%'), '*': () => engine.append('*'),
+                    '/': () => engine.append('/'), '+': () => engine.append('+'), '-': () => engine.append(
+                        '-'), '.': () => engine.append('.'), '(': () => engine.append('('), ')': () => engine
+                        .append(')'), };
+                if (keyMap[e.key]) { e.preventDefault();
+                    keyMap[e.key](); } else if (/^[0-9]$/.test(e.key)) { e.preventDefault();
+                    engine.append(e.key); }
+            }
+        });
+
+        // Initialize
+        engine.init();
+        converter.init();
+    </script>
+</body>
+</html>
