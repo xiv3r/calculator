@@ -443,7 +443,7 @@
                     <div class="btn-grid grid-4">
                         <button class="btn-clear" onclick="engine.clearAll()">AC</button>
                         <button class="btn-clear" onclick="engine.backspace()">⌫</button>
-                        <button onclick="engine.append('%')">%</button>
+                        <button onclick="engine.append('%')" title="Percent: 50% = 0.5 (NOT 'percent of previous')">%</button>
                         <button class="btn-op" onclick="engine.append('/')">÷</button>
                         <button onclick="engine.append('7')">7</button>
                         <button onclick="engine.append('8')">8</button>
@@ -609,7 +609,7 @@
                         <input type="number" id="taylorEval" value="0.5" step="any" placeholder="eval at">
                     </div>
                     <button class="btn-accent" onclick="calculus.taylor()" style="width:100%;margin-top:8px;">Expand & Evaluate</button>
-                    <div class="formula-result" id="taylorResult"><span class="label">Taylor Approximation</span></div>
+                    <div class="formula-result" id="taylorResult"><span class="label">Taylor Approximation (h=1e-3 forward diff)</span></div>
                 </div>
             </div>
         </div>
@@ -895,8 +895,9 @@
                 try {
                     let expr = this.expression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
                     expr = expr.replace(/\bPI\b/g, 'Math.PI');
-                    expr = expr.replace(/(?<![a-zA-Z0-9_])E(?![a-zA-Z0-9_+\-])/g, 'Math.E');
-                    expr = expr.replace(/([\d.]+|\))\s*!/g, (_, n) => `factorial(${n})`);
+                    expr = expr.replace(/(?<![\d.])E(?![\d])/g, 'Math.E');
+                    expr = expr.replace(/\(([^()]*)\)!/g, 'factorial($1)');
+                    expr = expr.replace(/(\d+(?:\.\d+)?)!/g, 'factorial($1)');
                     const funcMap = { 'sin': 'Math.sin', 'cos': 'Math.cos', 'tan': 'Math.tan', 'asin': 'Math.asin',
                         'acos': 'Math.acos', 'atan': 'Math.atan', 'sinh': 'Math.sinh', 'cosh': 'Math.cosh',
                         'tanh': 'Math.tanh', 'log': 'Math.log10', 'ln': 'Math.log', 'sqrt': 'Math.sqrt',
@@ -907,7 +908,8 @@
                     const openP = (expr.match(/\(/g) || []).length;
                     const closeP = (expr.match(/\)/g) || []).length;
                     if (openP > closeP) expr += ')'.repeat(openP - closeP);
-                    expr = expr.replace(/([\d.]+)%/g, '($1/100)');
+                    expr = expr.replace(/(\d+(?:\.\d+)?|\))%(?![\d.(])/g, '($1/100)');
+                    if (/%/.test(expr)) throw new Error('Invalid use of %');
                     const factorial = n => { if (!Number.isInteger(n) || n < 0) return NaN; if (n === 0 || n === 1)
                             return 1; if (n > 170) return Infinity; let r = 1; for (let i = 2; i <= n; i++) r *= i;
                         return r; };
@@ -942,14 +944,15 @@
             updateDisplay() {
                 const d = this.expression.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−').replace(/PI/g, 'π');
                 document.getElementById('calcExpr').textContent = d || '\u00A0';
-                document.getElementById('calcResult').textContent = this.expression ? '' : (this.lastResult !== null ?
-                    this.formatNum(this.lastResult) : '0');
+                const res = document.getElementById('calcResult');
+                res.textContent = this.expression ? '' : (this.lastResult !== null ? this.formatNum(this.lastResult) : '0');
+                res.classList.remove('error');
                 document.getElementById('calcSecondary').textContent = '';
             },
 
             memoryStore() { this.memory = this.lastResult !== null ? this.lastResult : 0; },
-            memoryRecall() { if (this.memory !== 0) { this.expression = this.formatNum(this.memory);
-                    this.updateDisplay(); } },
+            memoryRecall() { this.expression = this.formatNum(this.memory);
+                this.updateDisplay(); },
             memoryAdd() { if (this.lastResult !== null) this.memory += this.lastResult; },
             memoryClear() { this.memory = 0; },
 
@@ -971,8 +974,11 @@
             },
             escapeHtml(s) { const d = document.createElement('div');
                 d.textContent = s; return d.innerHTML; },
-            useHistory(r) { this.expression = r;
-                this.updateDisplay(); },
+            useHistory(r) {
+                if (!r || /∞/.test(r) || r === 'Error') return;
+                this.expression = r;
+                this.updateDisplay();
+            },
         };
 
         // ==================== ALGEBRA MODULE ====================
@@ -1002,11 +1008,10 @@
                 const expr = document.getElementById('polyExpr').value;
                 const x = parseFloat(document.getElementById('polyX').value) || 0;
                 try {
-                    let e = expr.replace(/\^/g, '**').replace(/x/g, `(${x})`);
+                    let e = expr.replace(/\^/g, '**').replace(/\bx\b/g, `(${x})`);
                     e = e.replace(/(\d)\(/g, '$1*(');
                     e = e.replace(/\)\(/g, ')*(');
                     e = e.replace(/\)(\d)/g, ')*$1');
-                    e = e.replace(/(\d)x/g, '$1*x');
                     const result = eval(`(() => { return ${e}; })()`);
                     document.getElementById('polyResult').innerHTML =
                         `<span class="label">f(${x}) =</span> ${engine.formatNum(result)}`;
@@ -1040,7 +1045,7 @@
                 const b = Math.abs(parseInt(document.getElementById('gcdB').value) || 0);
                 const gcd = (x, y) => { while (y) { [x, y] = [y, x % y]; } return x; };
                 const g = gcd(a, b);
-                const l = (a * b) / g;
+                const l = g === 0 ? 0 : (a * b) / g;
                 document.getElementById('gcdResult').innerHTML =
                     `<span class="label">GCD & LCM</span>GCD(${a},${b}) = ${g}<br>LCM(${a},${b}) = ${l}`;
             },
@@ -1049,9 +1054,8 @@
         // ==================== CALCULUS MODULE ====================
         const calculus = {
             safeEval(expr, xVal) {
-                let e = expr.replace(/\^/g, '**').replace(/x/g, `(${xVal})`);
-                e = e.replace(/(\d)\(/g, '$1*(').replace(/\)\(/g, ')*(').replace(/\)(\d)/g, ')*$1').replace(/(\d)x/g,
-                    '$1*x');
+                let e = expr.replace(/\^/g, '**').replace(/\bx\b/g, `(${xVal})`);
+                e = e.replace(/(\d)\(/g, '$1*(').replace(/\)\(/g, ')*(').replace(/\)(\d)/g, ')*$1');
                 e = e.replace(/\bexp\(/g, 'Math.exp(').replace(/\bsin\(/g, 'Math.sin(').replace(/\bcos\(/g, 'Math.cos(')
                     .replace(/\btan\(/g, 'Math.tan(').replace(/\blog\(/g, 'Math.log(').replace(/\bsqrt\(/g, 'Math.sqrt(');
                 return eval(`(() => { return ${e}; })()`);
@@ -1113,24 +1117,25 @@
             taylor() {
                 const func = document.getElementById('taylorFunc').value;
                 const x0 = parseFloat(document.getElementById('taylorX0').value) || 0;
-                const n = parseInt(document.getElementById('taylorN').value) || 5;
+                const n = Math.max(1, Math.min(10, parseInt(document.getElementById('taylorN').value) || 5));
                 const xEval = parseFloat(document.getElementById('taylorEval').value) || 0;
-                const h = 1e-5;
+                const h = 1e-3 * (1 + Math.abs(x0));
                 try {
                     const coeffs = [];
                     for (let i = 0; i < n; i++) {
                         const deriv = (x) => {
                             if (i === 0) return this.safeEval(func, x);
                             let sum = 0;
-                            const h2 = h / Math.pow(2, i);
                             for (let k = 0; k <= i; k++) {
                                 const binom = this.binomial(i, k);
                                 const sign = (i - k) % 2 === 0 ? 1 : -1;
-                                sum += sign * binom * this.safeEval(func, x + k * h2);
+                                sum += sign * binom * this.safeEval(func, x + k * h);
                             }
-                            return sum / Math.pow(h2, i);
+                            return sum / Math.pow(h, i);
                         };
-                        coeffs.push(deriv(x0) / this.factorial(i));
+                        const c = deriv(x0) / this.factorial(i);
+                        if (!isFinite(c) || isNaN(c)) throw new Error('non-finite coefficient');
+                        coeffs.push(c);
                     }
                     let approx = 0;
                     for (let i = 0; i < n; i++) {
@@ -1138,10 +1143,10 @@
                     }
                     const terms = coeffs.map((c, i) => `${engine.formatNum(c)}·(x-${x0})^${i}`).join(' + ');
                     document.getElementById('taylorResult').innerHTML =
-                        `<span class="label">Taylor @ x₀=${x0}, ${n} terms</span>P(x) ≈ ${terms}<br>P(${xEval}) ≈ ${engine.formatNum(approx)}`;
+                        `<span class="label">Taylor @ x₀=${x0}, ${n} terms (forward diff, h=1e-3)</span>P(x) ≈ ${terms}<br>P(${xEval}) ≈ ${engine.formatNum(approx)}`;
                 } catch (e) {
                     document.getElementById('taylorResult').innerHTML =
-                        '<span class="label">Error</span> Invalid function';
+                        '<span class="label">Error</span> Invalid function or non-finite derivative';
                 }
             },
 
@@ -1226,7 +1231,6 @@
                         inv[i][j] = ((i + j) % 2 === 0 ? 1 : -1) * this.calcDet(sub) / det;
                     }
                 }
-                // Transpose
                 const result = [];
                 for (let i = 0; i < n; i++) {
                     result[i] = [];
@@ -1274,21 +1278,26 @@
                             `<span class="label">Eigenvalues</span>λ₁ = ${engine.formatNum(real)} + ${engine.formatNum(imag)}i<br>λ₂ = ${engine.formatNum(real)} − ${engine.formatNum(imag)}i`;
                     }
                 } else if (m.length === 3) {
-                    // Power iteration approximation for dominant eigenvalue
+                    const A = m.map(r => r.slice());
                     let v = [1, 1, 1];
-                    for (let iter = 0; iter < 50; iter++) {
+                    let lambda = 0, prev = Infinity, converged = false;
+                    for (let iter = 0; iter < 500; iter++) {
                         const w = [0, 0, 0];
                         for (let i = 0; i < 3; i++)
-                            for (let j = 0; j < 3; j++) w[i] += m[i][j] * v[j];
+                            for (let j = 0; j < 3; j++) w[i] += A[i][j] * v[j];
                         const norm = Math.sqrt(w.reduce((s, x) => s + x * x, 0));
+                        if (norm === 0) { v = [1, 0, 0]; continue; }
                         v = w.map(x => x / norm);
+                        const av = [0, 0, 0];
+                        for (let i = 0; i < 3; i++)
+                            for (let j = 0; j < 3; j++) av[i] += A[i][j] * v[j];
+                        lambda = av.reduce((s, x, i) => s + x * v[i], 0);
+                        if (Math.abs(lambda - prev) < 1e-10) { converged = true; break; }
+                        prev = lambda;
                     }
-                    const av = [0, 0, 0];
-                    for (let i = 0; i < 3; i++)
-                        for (let j = 0; j < 3; j++) av[i] += m[i][j] * v[j];
-                    const lambda = av.reduce((s, x, i) => s + x * v[i], 0) / v.reduce((s, x) => s + x * x, 0);
-                    document.getElementById('matrixResult').innerHTML =
-                        `<span class="label">Dominant Eigenvalue (approx)</span>λ_max ≈ ${engine.formatNum(lambda)}`;
+                    document.getElementById('matrixResult').innerHTML = converged
+                        ? `<span class="label">Dominant Eigenvalue (power iteration)</span>λ_max ≈ ${engine.formatNum(lambda)}<br><span style="font-size:0.7rem;color:#888;">Only λ_max shown; use 2×2 for full spectrum.</span>`
+                        : `<span class="label">Dominant Eigenvalue (approx, not converged)</span>λ_max ≈ ${engine.formatNum(lambda)}<br><span style="font-size:0.7rem;color:#888;">Try a different matrix; equal-magnitude eigenvalues may oscillate.</span>`;
                 }
             },
         };
@@ -1296,6 +1305,7 @@
 
         // ==================== STATISTICS MODULE ====================
         const statistics = {
+            _distBuilt: false,
             compute() {
                 const raw = document.getElementById('statData').value;
                 const data = raw.split(',').map(s => parseFloat(s.trim())).filter(x => !isNaN(x));
@@ -1308,21 +1318,26 @@
                 const median = n % 2 === 0 ? (data[n / 2 - 1] + data[n / 2]) / 2 : data[Math.floor(n / 2)];
                 const variance = data.reduce((s, x) => s + (x - mean) ** 2, 0) / n;
                 const stdDev = Math.sqrt(variance);
-                const sampleVar = data.reduce((s, x) => s + (x - mean) ** 2, 0) / (n - 1);
-                const sampleStd = Math.sqrt(sampleVar);
+                const sampleVar = n > 1 ? data.reduce((s, x) => s + (x - mean) ** 2, 0) / (n - 1) : NaN;
+                const sampleStd = n > 1 ? Math.sqrt(sampleVar) : NaN;
                 const min = data[0],
                     max = data[n - 1],
                     range = max - min;
-                const q1 = data[Math.floor(n * 0.25)];
-                const q3 = data[Math.floor(n * 0.75)];
+                const pct = (sorted, p) => {
+                    const idx = (sorted.length - 1) * p;
+                    const lo = Math.floor(idx), hi = Math.ceil(idx);
+                    return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+                };
+                const q1 = pct(data, 0.25);
+                const q3 = pct(data, 0.75);
                 const iqr = q3 - q1;
-                const skewness = data.reduce((s, x) => s + ((x - mean) / stdDev) ** 3, 0) / n;
+                const skewness = stdDev === 0 ? 0 : data.reduce((s, x) => s + ((x - mean) / stdDev) ** 3, 0) / n;
                 document.getElementById('statResult').innerHTML = `<span class="label">Statistics (n=${n})</span>
             Mean: ${engine.formatNum(mean)} | Median: ${engine.formatNum(median)}<br>
-            Std Dev (pop): ${engine.formatNum(stdDev)} | (sample): ${engine.formatNum(sampleStd)}<br>
+            Std Dev (pop): ${engine.formatNum(stdDev)} | (sample): ${isNaN(sampleStd) ? 'N/A (n=1)' : engine.formatNum(sampleStd)}<br>
             Variance: ${engine.formatNum(variance)} | Range: ${engine.formatNum(range)}<br>
             Min: ${engine.formatNum(min)} | Max: ${engine.formatNum(max)}<br>
-            Q1: ${engine.formatNum(q1)} | Q3: ${engine.formatNum(q3)} | IQR: ${engine.formatNum(iqr)}<br>
+            Q1: ${engine.formatNum(q1)} | Q3: ${engine.formatNum(q3)} | IQR: ${engine.formatNum(iqr)} <span style="font-size:0.7rem;color:#888;">(QUARTILE.INC)</span><br>
             Skewness: ${engine.formatNum(skewness)} | Sum: ${engine.formatNum(sum)}`;
             },
 
@@ -1336,6 +1351,7 @@
                 else if (type === 'normal') html =
                     '<div class="row"><input type="number" id="normX" value="0" step="any" placeholder="x"><input type="number" id="normMu" value="0" step="any" placeholder="μ"><input type="number" id="normSigma" value="1" step="any" placeholder="σ"></div>';
                 document.getElementById('distParams').innerHTML = html;
+                this._distBuilt = true;
             },
 
             factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; },
@@ -1348,19 +1364,34 @@
                         const n = parseInt(document.getElementById('binomN').value) || 0;
                         const p = parseFloat(document.getElementById('binomP').value) || 0;
                         const k = parseInt(document.getElementById('binomK').value) || 0;
+                        if (k < 0 || k > n || n < 0) {
+                            document.getElementById('distResult').innerHTML =
+                                '<span class="label">Error</span> Require 0 ≤ k ≤ n';
+                            return;
+                        }
                         const prob = this.binomial(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
                         document.getElementById('distResult').innerHTML =
                             `<span class="label">P(X=${k})</span> = ${engine.formatNum(prob)}`;
                     } else if (type === 'poisson') {
                         const lambda = parseFloat(document.getElementById('poisLambda').value) || 0;
                         const k = parseInt(document.getElementById('poisK').value) || 0;
+                        if (k < 0 || lambda < 0) {
+                            document.getElementById('distResult').innerHTML =
+                                '<span class="label">Error</span> Require λ ≥ 0 and k ≥ 0';
+                            return;
+                        }
                         const prob = Math.pow(lambda, k) * Math.exp(-lambda) / this.factorial(k);
                         document.getElementById('distResult').innerHTML =
                             `<span class="label">P(X=${k})</span> = ${engine.formatNum(prob)}`;
                     } else if (type === 'normal') {
                         const x = parseFloat(document.getElementById('normX').value) || 0;
                         const mu = parseFloat(document.getElementById('normMu').value) || 0;
-                        const sigma = parseFloat(document.getElementById('normSigma').value) || 1;
+                        const sigma = parseFloat(document.getElementById('normSigma').value) || 0;
+                        if (sigma <= 0) {
+                            document.getElementById('distResult').innerHTML =
+                                '<span class="label">Error</span> σ must be > 0';
+                            return;
+                        }
                         const pdf = (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mu) /
                             sigma, 2));
                         document.getElementById('distResult').innerHTML =
@@ -1386,12 +1417,18 @@
                 const sumY = yRaw.reduce((s, x) => s + x, 0);
                 const sumXY = xRaw.reduce((s, x, i) => s + x * yRaw[i], 0);
                 const sumX2 = xRaw.reduce((s, x) => s + x * x, 0);
-                const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                const denom = n * sumX2 - sumX * sumX;
+                if (Math.abs(denom) < 1e-12) {
+                    document.getElementById('regResult').innerHTML =
+                        '<span class="label">Error</span> All X values are identical — slope undefined';
+                    return;
+                }
+                const m = (n * sumXY - sumX * sumY) / denom;
                 const b = (sumY - m * sumX) / n;
                 const yMean = sumY / n;
                 const ssTot = yRaw.reduce((s, y) => s + (y - yMean) ** 2, 0);
                 const ssRes = yRaw.reduce((s, y, i) => s + (y - (m * xRaw[i] + b)) ** 2, 0);
-                const r2 = 1 - ssRes / ssTot;
+                const r2 = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
                 document.getElementById('regResult').innerHTML = `<span class="label">Linear Regression</span>
             y = ${engine.formatNum(m)}x + ${engine.formatNum(b)}<br>
             R² = ${engine.formatNum(r2)}`;
@@ -1415,31 +1452,55 @@
 
             suvat() {
                 const unknown = document.getElementById('suvatUnknown').value;
-                const get = (id) => { const el = document.getElementById(`suvat_${id}`); return el ? parseFloat(el
-                        .value) || 0 : null; };
+                const get = (id) => {
+                    const el = document.getElementById(`suvat_${id}`);
+                    if (!el || el.value.trim() === '') return null;
+                    const v = parseFloat(el.value);
+                    return isNaN(v) ? null : v;
+                };
                 const s = unknown === 's' ? null : get('s');
                 const u = unknown === 'u' ? null : get('u');
                 const v = unknown === 'v' ? null : get('v');
                 const a = unknown === 'a' ? null : get('a');
                 const t = unknown === 't' ? null : get('t');
+                const vals = { s, u, v, a, t };
+                const required = {
+                    s: ['u', 'a', 't'],
+                    u: ['s', 'a', 't'],
+                    v: ['u', 'a', 't'],
+                    a: ['u', 'v', 't'],
+                    t: ['u', 'v', 'a']
+                }[unknown];
+                const missing = required.filter(k => vals[k] === null);
+                if (missing.length) {
+                    document.getElementById('suvatResult').innerHTML =
+                        `<span class="label">Error</span> Provide all of: ${required.join(', ')}`;
+                    return;
+                }
                 let result;
-                try {
-                    if (unknown === 's') result = u * t + 0.5 * a * t * t;
-                    else if (unknown === 'u') result = (s - 0.5 * a * t * t) / t;
-                    else if (unknown === 'v') result = u + a * t;
-                    else if (unknown === 'a') result = (v - u) / t;
-                    else if (unknown === 't') result = (v - u) / a;
+                if (unknown === 's') result = u * t + 0.5 * a * t * t;
+                else if (unknown === 'u') result = (s - 0.5 * a * t * t) / t;
+                else if (unknown === 'v') result = u + a * t;
+                else if (unknown === 'a') result = (v - u) / t;
+                else if (unknown === 't') result = (v - u) / a;
+                if (!isFinite(result) || isNaN(result)) {
                     document.getElementById('suvatResult').innerHTML =
-                        `<span class="label">${unknown} =</span> ${engine.formatNum(result)}`;
-                } catch (e) {
-                    document.getElementById('suvatResult').innerHTML =
-                    '<span class="label">Error</span> Check inputs';}
+                        '<span class="label">Error</span> Invalid result (division by zero or inconsistent inputs)';
+                    return;
+                }
+                document.getElementById('suvatResult').innerHTML =
+                    `<span class="label">${unknown} =</span> ${engine.formatNum(result)}`;
             },
 
             gravity() {
                 const m1 = parseFloat(document.getElementById('gravM1').value) || 0;
                 const m2 = parseFloat(document.getElementById('gravM2').value) || 0;
-                const r = parseFloat(document.getElementById('gravR').value) || 1;
+                const r = parseFloat(document.getElementById('gravR').value) || 0;
+                if (r === 0) {
+                    document.getElementById('gravResult').innerHTML =
+                        '<span class="label">Error</span> Distance cannot be zero';
+                    return;
+                }
                 const G = 6.67430e-11;
                 const F = G * m1 * m2 / (r * r);
                 document.getElementById('gravResult').innerHTML =
@@ -1468,7 +1529,12 @@
 
             ohmsLaw() {
                 const V = parseFloat(document.getElementById('ohmV').value) || 0;
-                const R = parseFloat(document.getElementById('ohmR').value) || 1;
+                const R = parseFloat(document.getElementById('ohmR').value) || 0;
+                if (R === 0) {
+                    document.getElementById('ohmResult').innerHTML =
+                        '<span class="label">Error</span> Resistance cannot be zero';
+                    return;
+                }
                 const I = V / R;
                 const P = V * I;
                 document.getElementById('ohmResult').innerHTML =
@@ -1478,6 +1544,11 @@
             wave() {
                 const f = parseFloat(document.getElementById('waveFreq').value) || 0;
                 const v = parseFloat(document.getElementById('waveSpeed').value) || 0;
+                if (f === 0) {
+                    document.getElementById('waveResult').innerHTML =
+                        '<span class="label">Error</span> Frequency cannot be zero';
+                    return;
+                }
                 const wavelength = v / f;
                 const period = 1 / f;
                 document.getElementById('waveResult').innerHTML =
@@ -1537,16 +1608,41 @@
             },
 
             parseFormula(formula) {
-                const elements = {};
-                const regex = /([A-Z][a-z]?)(\d*)/g;
-                let match;
-                while ((match = regex.exec(formula)) !== null) {
-                    const el = match[1];
-                    const count = match[2] ? parseInt(match[2]) : 1;
-                    if (!this.atomicMasses[el]) return null;
-                    elements[el] = (elements[el] || 0) + count;
-                }
-                return elements;
+                formula = formula.replace(/\s+/g, '');
+                let i = 0;
+                const parseGroup = () => {
+                    const counts = {};
+                    while (i < formula.length) {
+                        const ch = formula[i];
+                        if (ch === '(') {
+                            i++;
+                            const inner = parseGroup();
+                            if (inner === null) return null;
+                            let num = '';
+                            while (i < formula.length && /\d/.test(formula[i])) num += formula[i++];
+                            const mult = num ? parseInt(num, 10) : 1;
+                            for (const [el, c] of Object.entries(inner))
+                                counts[el] = (counts[el] || 0) + c * mult;
+                        } else if (ch === ')') {
+                            i++;
+                            return counts;
+                        } else if (/[A-Z]/.test(ch)) {
+                            let el = ch; i++;
+                            while (i < formula.length && /[a-z]/.test(formula[i])) el += formula[i++];
+                            let num = '';
+                            while (i < formula.length && /\d/.test(formula[i])) num += formula[i++];
+                            const c = num ? parseInt(num, 10) : 1;
+                            if (!this.atomicMasses[el]) return null;
+                            counts[el] = (counts[el] || 0) + c;
+                        } else {
+                            return null;
+                        }
+                    }
+                    return counts;
+                };
+                const res = parseGroup();
+                if (res === null || i !== formula.length) return null;
+                return res;
             },
 
             molarMass() {
@@ -1554,7 +1650,7 @@
                 const elements = this.parseFormula(formula);
                 if (!elements || Object.keys(elements).length === 0) {
                     document.getElementById('molarMassResult').innerHTML =
-                        '<span class="label">Error</span> Invalid formula. Use format: H2SO4, NaCl, C6H12O6';
+                        '<span class="label">Error</span> Invalid formula. Use format: H2SO4, Ca(OH)2, C6H12O6';
                     return;
                 }
                 let totalMass = 0;
@@ -1588,17 +1684,24 @@
                 const n = unknown === 'n' ? null : get('n');
                 const T = unknown === 'T' ? null : get('T');
                 const R = 0.082057;
+                const err = (msg) => { document.getElementById('gasResult').innerHTML =
+                        `<span class="label">Error</span> ${msg}`; };
+                if (unknown === 'P' && V === 0) return err('Volume cannot be zero when solving for P');
+                if (unknown === 'V' && P === 0) return err('Pressure cannot be zero when solving for V');
+                if (unknown === 'n' && (R * T) === 0) return err('Temperature cannot be zero when solving for n');
+                if (unknown === 'T' && (n * R) === 0) return err('Moles cannot be zero when solving for T');
                 let result;
                 try {
                     if (unknown === 'P') result = (n * R * T) / V;
                     else if (unknown === 'V') result = (n * R * T) / P;
                     else if (unknown === 'n') result = (P * V) / (R * T);
                     else if (unknown === 'T') result = (P * V) / (n * R);
+                    if (!isFinite(result) || isNaN(result)) return err('Check inputs (non-finite result)');
                     document.getElementById('gasResult').innerHTML =
                         `<span class="label">${unknown} =</span> ${engine.formatNum(result)}`;
                 } catch (e) {
-                    document.getElementById('gasResult').innerHTML =
-                    '<span class="label">Error</span> Check inputs';}
+                    err('Check inputs');
+                }
             },
 
             pH() {
@@ -1615,14 +1718,20 @@
                 if (isNaN(pH)) { document.getElementById('phResult').innerHTML =
                         '<span class="label">Error</span> Invalid pH'; return; }
                 const hPlus = Math.pow(10, -pH);
+                const note = (pH < 0 || pH > 14) ? ' <span style="font-size:0.7rem;color:#888;">(outside typical 0–14 range)</span>' : '';
                 document.getElementById('phResult').innerHTML =
-                    `<span class="label">[H⁺] =</span> ${engine.formatNum(hPlus)} mol/L`;
+                    `<span class="label">[H⁺] =</span> ${engine.formatNum(hPlus)} mol/L${note}`;
             },
 
             dilution() {
                 const C1 = parseFloat(document.getElementById('dilC1').value) || 0;
                 const V1 = parseFloat(document.getElementById('dilV1').value) || 0;
                 const C2 = parseFloat(document.getElementById('dilC2').value) || 0;
+                if (C2 === 0) {
+                    document.getElementById('dilResult').innerHTML =
+                        '<span class="label">Error</span> C₂ cannot be zero';
+                    return;
+                }
                 const V2 = (C1 * V1) / C2;
                 document.getElementById('dilV2').value = engine.formatNum(V2);
                 document.getElementById('dilResult').innerHTML =
@@ -1633,6 +1742,7 @@
 
         // ==================== CONVERTER MODULE ====================
         const converter = {
+            _initialized: false,
             categories: {
                 length: { base: 'Meter', units: ['Meter', 'Kilometer', 'Centimeter', 'Millimeter', 'Micrometer',
                         'Nanometer', 'Mile', 'Yard', 'Foot', 'Inch', 'Nautical Mile', 'Light Year',
@@ -1683,7 +1793,8 @@
             currentCategory: 'length',
 
             init() { this.populateUnits();
-                this.convert(); },
+                this.convert();
+                this._initialized = true; },
             changeCategory() {
                 this.currentCategory = document.getElementById('convCategory').value;
                 this.populateUnits();
@@ -1840,20 +1951,38 @@
             },
 
             trigSolver() {
-                const a = parseFloat(document.getElementById('trigA').value);
-                const b = parseFloat(document.getElementById('trigB').value);
-                const c = parseFloat(document.getElementById('trigC').value);
-                let sideA = a || 0,
-                    sideB = b || 0,
-                    sideC = c || 0;
-                if (!isNaN(a) && !isNaN(b) && isNaN(c)) sideC = Math.sqrt(a * a + b * b);
-                else if (!isNaN(a) && !isNaN(c) && isNaN(b)) sideB = Math.sqrt(Math.max(0, c * c - a * a));
-                else if (!isNaN(b) && !isNaN(c) && isNaN(a)) sideA = Math.sqrt(Math.max(0, c * c - b * b));
-                const angleA = Math.asin(sideA / sideC) * 180 / Math.PI;
-                const angleB = Math.asin(sideB / sideC) * 180 / Math.PI;
-                const angleC = 90;
+                const raw = (id) => {
+                    const v = parseFloat(document.getElementById(id).value);
+                    return isNaN(v) ? null : v;
+                };
+                const a = raw('trigA'), b = raw('trigB'), c = raw('trigC');
+                const known = [a, b, c].filter(x => x !== null).length;
+                if (known < 2) {
+                    document.getElementById('trigResult').innerHTML =
+                        '<span class="label">Error</span> Enter at least 2 sides';
+                    return;
+                }
+                let A = a, B = b, C = c;
+                if (a !== null && b !== null && c === null) C = Math.hypot(a, b);
+                else if (a !== null && c !== null && b === null) {
+                    if (c < a) { document.getElementById('trigResult').innerHTML =
+                        '<span class="label">Error</span> Hypotenuse must be ≥ side'; return; }
+                    B = Math.sqrt(c*c - a*a);
+                } else if (b !== null && c !== null && a === null) {
+                    if (c < b) { document.getElementById('trigResult').innerHTML =
+                        '<span class="label">Error</span> Hypotenuse must be ≥ side'; return; }
+                    A = Math.sqrt(c*c - b*b);
+                } else if (a !== null && b !== null && c !== null) {
+                    if (Math.abs(a*a + b*b - c*c) > 1e-9 * Math.max(1, c*c)) {
+                        document.getElementById('trigResult').innerHTML =
+                            '<span class="label">Error</span> Sides do not satisfy a² + b² = c²';
+                        return;
+                    }
+                }
+                const angleA = Math.asin(A / C) * 180 / Math.PI;
+                const angleB = Math.asin(B / C) * 180 / Math.PI;
                 document.getElementById('trigResult').innerHTML = `<span class="label">Right Triangle</span>
-            a: ${engine.formatNum(sideA)} | b: ${engine.formatNum(sideB)} | c: ${engine.formatNum(sideC)}<br>
+            a: ${engine.formatNum(A)} | b: ${engine.formatNum(B)} | c: ${engine.formatNum(C)}<br>
             ∠A: ${engine.formatNum(angleA)}° | ∠B: ${engine.formatNum(angleB)}° | ∠C: 90°`;
             },
 
@@ -1885,14 +2014,18 @@
                 document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add(
                     'hidden'));
                 document.getElementById(tabId).classList.remove('hidden');
-                if (btn.dataset.tab === 'converter') converter.init();
-                if (btn.dataset.tab === 'statistics') statistics.updateDist();
+                if (btn.dataset.tab === 'converter') {
+                    if (!converter._initialized) converter.init();
+                    else converter.convert();
+                }
+                if (btn.dataset.tab === 'statistics' && !statistics._distBuilt) {
+                    statistics.updateDist();
+                }
             });
         });
 
-        // Keyboard support for calculator
         document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(e.target.tagName)) return;
             const activeTab = document.querySelector('#mainTabs button.active');
             if (activeTab && activeTab.dataset.tab === 'calculator') {
                 const keyMap = { 'Enter': () => engine.evaluate(), 'Backspace': () => engine.backspace(),
@@ -1907,7 +2040,6 @@
             }
         });
 
-        // Initialize
         engine.init();
         converter.init();
     </script>
